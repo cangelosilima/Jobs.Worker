@@ -1,0 +1,12 @@
+{
+  "totalJobs": 45,
+  "activeJobs": 38,
+  "disabledJobs": 5,
+  "runningExecutions": 7,
+  "failedToday": 3,
+  "succeededToday": 142,
+  "delayedOrSkipped": 2,
+  "exceedingExpectedDuration": 1,
+  "averageExecutionTimeSeconds": 87.34,
+  "successRatePercentage": 97.93
+}

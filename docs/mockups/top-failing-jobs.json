@@ -1,0 +1,47 @@
+[
+  {
+    "jobDefinitionId": "e5f6a7b8-c9d0-4e5f-2a3b-4c5d6e7f8a9b",
+    "jobName": "Failed Payment Retry Processor",
+    "category": "Finance",
+    "failureCount": 12,
+    "lastFailureUtc": "2025-11-27T03:08:42Z",
+    "ownerName": "Robert Chen",
+    "ownerEmail": "robert.chen@company.com"
+  },
+  {
+    "jobDefinitionId": "c3d4e5f6-a7b8-4c5d-0e1f-2a3b4c5d6e7f",
+    "jobName": "Email Campaign Processor",
+    "category": "Marketing",
+    "failureCount": 8,
+    "lastFailureUtc": "2025-11-27T00:12:35Z",
+    "ownerName": "Mike Davis",
+    "ownerEmail": "mike.davis@company.com"
+  },
+  {
+    "jobDefinitionId": "b2c3d4e5-f6a7-4b5c-9d0e-1f2a3b4c5d6e",
+    "jobName": "Customer Data Synchronization",
+    "category": "Data Integration",
+    "failureCount": 6,
+    "lastFailureUtc": "2025-11-27T01:35:18Z",
+    "ownerName": "Sarah Johnson",
+    "ownerEmail": "sarah.johnson@company.com"
+  },
+  {
+    "jobDefinitionId": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+    "jobName": "Daily Sales Report Generator",
+    "category": "Reporting",
+    "failureCount": 3,
+    "lastFailureUtc": "2025-11-24T06:01:42Z",
+    "ownerName": "John Smith",
+    "ownerEmail": "john.smith@company.com"
+  },
+  {
+    "jobDefinitionId": "d4e5f6a7-b8c9-4d5e-1f2a-3b4c5d6e7f8a",
+    "jobName": "Inventory Reconciliation",
+    "category": "Operations",
+    "failureCount": 2,
+    "lastFailureUtc": "2025-11-25T03:15:22Z",
+    "ownerName": "Lisa Anderson",
+    "ownerEmail": "lisa.anderson@company.com"
+  }
+]
