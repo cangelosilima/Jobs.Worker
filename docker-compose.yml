@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  # SQL Server
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: jobs-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Password123
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+      - ./scripts/database:/docker-entrypoint-initdb.d
+    networks:
+      - jobs-network
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P YourStrong@Password123 -Q "SELECT 1"
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  # Redis (for distributed locking)
+  redis:
+    image: redis:7-alpine
+    container_name: jobs-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - jobs-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  # Elasticsearch (for logging)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: jobs-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - jobs-network
+    healthcheck:
+      test: curl -f http://localhost:9200/_cluster/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Kibana (for log visualization)
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: jobs-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - jobs-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  # Jobs Worker API
+  jobs-api:
+    build:
+      context: .
+      dockerfile: src/Jobs.Worker.Api/Dockerfile
+    container_name: jobs-worker-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__JobSchedulerDb=Server=sqlserver;Database=JobScheduler;User Id=sa;Password=YourStrong@Password123;TrustServerCertificate=True
+      - Serilog__WriteTo__0__Args__nodeUris=http://elasticsearch:9200
+    ports:
+      - "5000:80"
+    networks:
+      - jobs-network
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Jobs Worker Service
+  jobs-worker:
+    build:
+      context: .
+      dockerfile: src/Jobs.Worker.Worker/Dockerfile
+    container_name: jobs-worker-service
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__JobSchedulerDb=Server=sqlserver;Database=JobScheduler;User Id=sa;Password=YourStrong@Password123;TrustServerCertificate=True
+      - Serilog__WriteTo__0__Args__nodeUris=http://elasticsearch:9200
+    networks:
+      - jobs-network
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+
+networks:
+  jobs-network:
+    driver: bridge
+
+volumes:
+  sqlserver-data:
+  redis-data:
+  elasticsearch-data:

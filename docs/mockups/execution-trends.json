@@ -1,0 +1,58 @@
+[
+  {
+    "executionDate": "2025-11-27",
+    "totalExecutions": 156,
+    "successCount": 142,
+    "failureCount": 3,
+    "timeoutCount": 0,
+    "avgDurationSeconds": 87.34
+  },
+  {
+    "executionDate": "2025-11-26",
+    "totalExecutions": 168,
+    "successCount": 161,
+    "failureCount": 5,
+    "timeoutCount": 2,
+    "avgDurationSeconds": 92.18
+  },
+  {
+    "executionDate": "2025-11-25",
+    "totalExecutions": 172,
+    "successCount": 165,
+    "failureCount": 6,
+    "timeoutCount": 1,
+    "avgDurationSeconds": 89.45
+  },
+  {
+    "executionDate": "2025-11-24",
+    "totalExecutions": 145,
+    "successCount": 138,
+    "failureCount": 4,
+    "timeoutCount": 3,
+    "avgDurationSeconds": 94.27
+  },
+  {
+    "executionDate": "2025-11-23",
+    "totalExecutions": 159,
+    "successCount": 152,
+    "failureCount": 5,
+    "timeoutCount": 2,
+    "avgDurationSeconds": 88.91
+  },
+  {
+    "executionDate": "2025-11-22",
+    "totalExecutions": 163,
+    "successCount": 157,
+    "failureCount": 4,
+    "timeoutCount": 2,
+    "avgDurationSeconds": 90.33
+  },
+  {
+    "executionDate": "2025-11-21",
+    "totalExecutions": 171,
+    "successCount": 164,
+    "failureCount": 6,
+    "timeoutCount": 1,
+    "avgDurationSeconds": 86.72
+  }
+]
