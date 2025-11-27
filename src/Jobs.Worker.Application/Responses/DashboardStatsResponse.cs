@@ -1,6 +1,6 @@
-namespace Jobs.Worker.Application.DTOs;
+namespace Jobs.Worker.Application.Responses;
 
-public record DashboardStatsDto
+public record DashboardStatsResponse
 {
     public int TotalJobs { get; init; }
     public int ActiveJobs { get; init; }

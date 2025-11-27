@@ -1,9 +1,8 @@
 using Jobs.Worker.Domain.Enums;
-using MediatR;
 
 namespace Jobs.Worker.Application.Commands;
 
-public record CreateScheduleCommand : IRequest<Guid>
+public record CreateScheduleCommand
 {
     public Guid JobDefinitionId { get; init; }
     public ScheduleType ScheduleType { get; init; }

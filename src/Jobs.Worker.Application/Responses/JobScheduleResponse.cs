@@ -1,8 +1,8 @@
 using Jobs.Worker.Domain.Enums;
 
-namespace Jobs.Worker.Application.DTOs;
+namespace Jobs.Worker.Application.Responses;
 
-public record JobScheduleDto
+public record JobScheduleResponse
 {
     public Guid Id { get; init; }
     public Guid JobDefinitionId { get; init; }

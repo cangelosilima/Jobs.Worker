@@ -3,11 +3,10 @@ using Jobs.Worker.Application.Interfaces;
 using Jobs.Worker.Domain.Entities;
 using Jobs.Worker.Domain.Enums;
 using Jobs.Worker.Domain.ValueObjects;
-using MediatR;
 
 namespace Jobs.Worker.Application.Handlers;
 
-public class CreateJobCommandHandler : IRequestHandler<CreateJobCommand, Guid>
+public class CreateJobCommandHandler
 {
     private readonly IJobRepository _jobRepository;
     private readonly IAuditRepository _auditRepository;
@@ -18,7 +17,7 @@ public class CreateJobCommandHandler : IRequestHandler<CreateJobCommand, Guid>
         _auditRepository = auditRepository;
     }
 
-    public async Task<Guid> Handle(CreateJobCommand request, CancellationToken cancellationToken)
+    public async Task<Guid> HandleAsync(CreateJobCommand request, CancellationToken cancellationToken = default)
     {
         var job = new JobDefinition(
             request.Name,

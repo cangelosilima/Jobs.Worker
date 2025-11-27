@@ -1,8 +1,8 @@
 using Jobs.Worker.Domain.Enums;
 
-namespace Jobs.Worker.Application.DTOs;
+namespace Jobs.Worker.Application.Responses;
 
-public record JobDefinitionDto
+public record JobDefinitionResponse
 {
     public Guid Id { get; init; }
     public string Name { get; init; } = string.Empty;

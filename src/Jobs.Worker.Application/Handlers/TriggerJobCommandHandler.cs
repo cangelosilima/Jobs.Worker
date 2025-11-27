@@ -2,11 +2,10 @@ using Jobs.Worker.Application.Commands;
 using Jobs.Worker.Application.Interfaces;
 using Jobs.Worker.Domain.Entities;
 using Jobs.Worker.Domain.ValueObjects;
-using MediatR;
 
 namespace Jobs.Worker.Application.Handlers;
 
-public class TriggerJobCommandHandler : IRequestHandler<TriggerJobCommand, Guid>
+public class TriggerJobCommandHandler
 {
     private readonly IJobRepository _jobRepository;
     private readonly IJobExecutionRepository _executionRepository;
@@ -22,7 +21,7 @@ public class TriggerJobCommandHandler : IRequestHandler<TriggerJobCommand, Guid>
         _auditRepository = auditRepository;
     }
 
-    public async Task<Guid> Handle(TriggerJobCommand request, CancellationToken cancellationToken)
+    public async Task<Guid> HandleAsync(TriggerJobCommand request, CancellationToken cancellationToken = default)
     {
         var job = await _jobRepository.GetByIdAsync(request.JobDefinitionId, cancellationToken)
             ?? throw new InvalidOperationException($"Job {request.JobDefinitionId} not found");

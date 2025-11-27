@@ -1,9 +1,8 @@
 using Jobs.Worker.Domain.Enums;
-using MediatR;
 
 namespace Jobs.Worker.Application.Commands;
 
-public record UpdateJobStatusCommand : IRequest<Unit>
+public record UpdateJobStatusCommand
 {
     public Guid JobDefinitionId { get; init; }
     public JobStatus NewStatus { get; init; }

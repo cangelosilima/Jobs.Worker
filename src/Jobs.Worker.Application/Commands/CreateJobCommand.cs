@@ -1,9 +1,8 @@
 using Jobs.Worker.Domain.Enums;
-using MediatR;
 
 namespace Jobs.Worker.Application.Commands;
 
-public record CreateJobCommand : IRequest<Guid>
+public record CreateJobCommand
 {
     public string Name { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;

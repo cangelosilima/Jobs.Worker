@@ -1,12 +1,11 @@
-using Jobs.Worker.Application.DTOs;
 using Jobs.Worker.Application.Interfaces;
 using Jobs.Worker.Application.Queries;
+using Jobs.Worker.Application.Responses;
 using Jobs.Worker.Domain.Enums;
-using MediatR;
 
 namespace Jobs.Worker.Application.Handlers;
 
-public class GetDashboardStatsQueryHandler : IRequestHandler<GetDashboardStatsQuery, DashboardStatsDto>
+public class GetDashboardStatsQueryHandler
 {
     private readonly IJobRepository _jobRepository;
     private readonly IJobExecutionRepository _executionRepository;
@@ -19,7 +18,7 @@ public class GetDashboardStatsQueryHandler : IRequestHandler<GetDashboardStatsQu
         _executionRepository = executionRepository;
     }
 
-    public async Task<DashboardStatsDto> Handle(GetDashboardStatsQuery request, CancellationToken cancellationToken)
+    public async Task<DashboardStatsResponse> HandleAsync(GetDashboardStatsQuery request, CancellationToken cancellationToken = default)
     {
         var allJobs = await _jobRepository.GetAllAsync(cancellationToken);
         var runningExecutions = await _executionRepository.GetRunningExecutionsAsync(cancellationToken);
@@ -39,7 +38,7 @@ public class GetDashboardStatsQueryHandler : IRequestHandler<GetDashboardStatsQu
         var totalToday = succeededToday + failedToday.Count();
         var successRate = totalToday > 0 ? (double)succeededToday / totalToday * 100 : 100.0;
 
-        return new DashboardStatsDto
+        return new DashboardStatsResponse
         {
             TotalJobs = totalJobs,
             ActiveJobs = activeJobs,
