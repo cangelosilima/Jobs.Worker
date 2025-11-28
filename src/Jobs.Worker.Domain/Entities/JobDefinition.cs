@@ -18,6 +18,7 @@ public class JobDefinition
     public string? ContainerImage { get; private set; }
     public int TimeoutSeconds { get; private set; }
     public RetryPolicy RetryPolicy { get; private set; } = RetryPolicy.NoRetry();
+    public CircuitBreakerPolicy CircuitBreakerPolicy { get; private set; } = CircuitBreakerPolicy.Disabled();
     public int MaxConcurrentExecutions { get; private set; }
     public bool AllowManualTrigger { get; private set; }
     public int? ExpectedDurationSeconds { get; private set; }
@@ -39,6 +40,7 @@ public class JobDefinition
     public virtual ICollection<JobDependency> Dependencies { get; private set; } = new List<JobDependency>();
     public virtual ICollection<JobDependency> DependentJobs { get; private set; } = new List<JobDependency>();
     public virtual JobOwnership? Ownership { get; private set; }
+    public virtual JobCircuitBreaker? CircuitBreaker { get; private set; }
 
     private JobDefinition() { }
 
@@ -83,6 +85,11 @@ public class JobDefinition
     public void SetRetryPolicy(RetryPolicy policy)
     {
         RetryPolicy = policy;
+    }
+
+    public void SetCircuitBreakerPolicy(CircuitBreakerPolicy policy)
+    {
+        CircuitBreakerPolicy = policy;
     }
 
     public void SetExecutionCommand(string? command, string? containerImage = null)

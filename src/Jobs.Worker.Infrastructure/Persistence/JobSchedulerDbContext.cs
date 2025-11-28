@@ -18,6 +18,7 @@ public class JobSchedulerDbContext : DbContext
     public DbSet<JobDependency> JobDependencies => Set<JobDependency>();
     public DbSet<JobOwnership> JobOwnerships => Set<JobOwnership>();
     public DbSet<JobAudit> JobAudits => Set<JobAudit>();
+    public DbSet<JobCircuitBreaker> JobCircuitBreakers => Set<JobCircuitBreaker>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,6 +46,16 @@ public class JobSchedulerDbContext : DbContext
                 rp.Property(p => p.MaxDelaySeconds).HasColumnName("MaxDelaySeconds");
             });
 
+            entity.OwnsOne(e => e.CircuitBreakerPolicy, cbp =>
+            {
+                cbp.Property(p => p.IsEnabled).HasColumnName("CircuitBreakerEnabled");
+                cbp.Property(p => p.FailureThreshold).HasColumnName("CircuitBreakerFailureThreshold");
+                cbp.Property(p => p.ConsecutiveFailuresWindow).HasColumnName("CircuitBreakerFailuresWindow");
+                cbp.Property(p => p.OpenDurationSeconds).HasColumnName("CircuitBreakerOpenDuration");
+                cbp.Property(p => p.AutoRecover).HasColumnName("CircuitBreakerAutoRecover");
+                cbp.Property(p => p.HalfOpenMaxAttempts).HasColumnName("CircuitBreakerHalfOpenAttempts");
+            });
+
             entity.HasOne(e => e.Ownership)
                   .WithOne(o => o.JobDefinition)
                   .HasForeignKey<JobOwnership>(o => o.JobDefinitionId);
@@ -64,6 +75,10 @@ public class JobSchedulerDbContext : DbContext
             entity.HasMany(e => e.Executions)
                   .WithOne(ex => ex.JobDefinition)
                   .HasForeignKey(ex => ex.JobDefinitionId);
+
+            entity.HasOne(e => e.CircuitBreaker)
+                  .WithOne(cb => cb.JobDefinition)
+                  .HasForeignKey<JobCircuitBreaker>(cb => cb.JobDefinitionId);
         });
 
         // JobSchedule configuration
@@ -191,6 +206,16 @@ public class JobSchedulerDbContext : DbContext
             entity.Property(e => e.PerformedBy).HasMaxLength(100).IsRequired();
             entity.Property(e => e.IpAddress).HasMaxLength(50);
             entity.Property(e => e.UserAgent).HasMaxLength(500);
+        });
+
+        // JobCircuitBreaker configuration
+        modelBuilder.Entity<JobCircuitBreaker>(entity =>
+        {
+            entity.ToTable("JobCircuitBreaker");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.State).IsRequired();
+            entity.Property(e => e.OpenReason).HasMaxLength(500);
+            entity.Property(e => e.OpenedBy).HasMaxLength(100);
         });
     }
 }
