@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   AppBar,
   Box,
@@ -14,9 +13,6 @@ import {
   Typography,
   Badge,
   Avatar,
-  Menu,
-  MenuItem,
-  Divider,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -29,7 +25,6 @@ import {
   Notifications as NotificationsIcon,
   Brightness4 as Brightness4Icon,
   Brightness7 as Brightness7Icon,
-  AccountCircle,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUIStore } from '@/state/ui.store';
@@ -53,31 +48,11 @@ export const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }
   const navigate = useNavigate();
   const location = useLocation();
   const { sidebarOpen, toggleSidebar, themeMode, toggleTheme, toggleNotificationDrawer } = useUIStore();
-  const { user, logout, hasAnyRole } = useAuthStore();
+  const { user } = useAuthStore();
   const { unreadCount } = useNotificationStore();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleLogout = () => {
-    logout();
-    handleMenuClose();
-    navigate('/login');
-  };
-
-  const menuItems = routes.filter((route) => {
-    if (!route.showInMenu) return false;
-    if (route.requiredRoles && route.requiredRoles.length > 0) {
-      return hasAnyRole(route.requiredRoles);
-    }
-    return true;
-  });
+  // Show all menu items (no auth required)
+  const menuItems = routes.filter((route) => route.showInMenu);
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -115,29 +90,14 @@ export const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }
             </Badge>
           </IconButton>
 
-          <IconButton
-            onClick={handleMenuOpen}
-            color="inherit"
-            sx={{ ml: 1 }}
-          >
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main', mr: 1 }}>
               {user?.name.charAt(0).toUpperCase()}
             </Avatar>
-          </IconButton>
-
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-            onClick={handleMenuClose}
-          >
-            <MenuItem disabled>
-              <AccountCircle sx={{ mr: 1 }} />
+            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
               {user?.name}
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={handleLogout}>Logout</MenuItem>
-          </Menu>
+            </Typography>
+          </Box>
         </Toolbar>
       </AppBar>
 

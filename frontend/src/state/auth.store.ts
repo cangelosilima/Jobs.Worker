@@ -21,11 +21,19 @@ interface AuthState {
   canTrigger: () => boolean;
 }
 
+// Default admin user (no authentication required)
+const defaultUser: User = {
+  id: 'default-admin',
+  name: 'Admin User',
+  email: 'admin@jobscheduler.local',
+  roles: [UserRole.Admin, UserRole.Operator, UserRole.JobOwner, UserRole.Viewer],
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      user: null,
-      isAuthenticated: false,
+      user: defaultUser,
+      isAuthenticated: true,
 
       login: (user) =>
         set({
@@ -35,8 +43,8 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () =>
         set({
-          user: null,
-          isAuthenticated: false,
+          user: defaultUser,
+          isAuthenticated: true,
         }),
 
       hasRole: (role) => {
@@ -51,18 +59,15 @@ export const useAuthStore = create<AuthState>()(
       },
 
       canEdit: () => {
-        const { hasAnyRole } = get();
-        return hasAnyRole([UserRole.Admin, UserRole.Operator, UserRole.JobOwner]);
+        return true; // No auth - always allow
       },
 
       canDelete: () => {
-        const { hasAnyRole } = get();
-        return hasAnyRole([UserRole.Admin]);
+        return true; // No auth - always allow
       },
 
       canTrigger: () => {
-        const { hasAnyRole } = get();
-        return hasAnyRole([UserRole.Admin, UserRole.Operator, UserRole.JobOwner]);
+        return true; // No auth - always allow
       },
     }),
     {

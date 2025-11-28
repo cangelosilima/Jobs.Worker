@@ -1,5 +1,3 @@
-import { Navigate } from 'react-router-dom';
-import { useAuthStore } from '@/state/auth.store';
 import { UserRole } from '@/api/types';
 
 interface ProtectedRouteProps {
@@ -7,16 +5,7 @@ interface ProtectedRouteProps {
   requiredRoles?: UserRole[];
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRoles }) => {
-  const { isAuthenticated, hasAnyRole } = useAuthStore();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (requiredRoles && requiredRoles.length > 0 && !hasAnyRole(requiredRoles)) {
-    return <Navigate to="/unauthorized" replace />;
-  }
-
+// No authentication required - always allow access
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   return <>{children}</>;
 };

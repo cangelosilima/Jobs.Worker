@@ -8,7 +8,6 @@ import { lightTheme, darkTheme } from '@/theme/theme';
 import { useUIStore } from '@/state/ui.store';
 import { useNotificationStore } from '@/state/notification.store';
 import { MainLayout } from '@/layouts/MainLayout';
-import { ProtectedRoute } from '@/routing/ProtectedRoute';
 import { routes } from '@/routing/routes';
 import { signalRService } from '@/services/signalr';
 import type { NotificationMessage } from '@/services/signalr';
@@ -66,40 +65,18 @@ function App() {
       <ThemeProvider theme={theme}>
         <BrowserRouter>
           <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              {/* Protected routes */}
-              <Route
-                path="/*"
-                element={
-                  <ProtectedRoute>
-                    <MainLayout>
-                      <Routes>
-                        {routes.map((route) => (
-                          <Route
-                            key={route.path}
-                            path={route.path}
-                            element={
-                              route.requiredRoles ? (
-                                <ProtectedRoute requiredRoles={route.requiredRoles}>
-                                  {route.element}
-                                </ProtectedRoute>
-                              ) : (
-                                route.element
-                              )
-                            }
-                          />
-                        ))}
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                      </Routes>
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* Public routes */}
-              <Route path="/login" element={<div>Login Page (TODO)</div>} />
-              <Route path="/unauthorized" element={<div>Unauthorized</div>} />
-            </Routes>
+            <MainLayout>
+              <Routes>
+                {routes.map((route) => (
+                  <Route
+                    key={route.path}
+                    path={route.path}
+                    element={route.element}
+                  />
+                ))}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </MainLayout>
           </Suspense>
         </BrowserRouter>
       </ThemeProvider>
