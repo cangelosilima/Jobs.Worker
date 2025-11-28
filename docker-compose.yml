@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # SQL Server
   sqlserver:
@@ -94,12 +92,11 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # Jobs Worker Service
+  # Jobs Worker Service (can scale with docker-compose up --scale jobs-worker=2)
   jobs-worker:
     build:
       context: .
       dockerfile: src/Jobs.Worker.Worker/Dockerfile
-    container_name: jobs-worker-service
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__JobSchedulerDb=Server=sqlserver;Database=JobScheduler;User Id=sa;Password=YourStrong@Password123;TrustServerCertificate=True
@@ -112,8 +109,6 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
-    deploy:
-      replicas: 2
 
 networks:
   jobs-network:
