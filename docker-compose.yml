@@ -92,7 +92,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # Jobs Worker Service (can scale with docker-compose up --scale jobs-worker=2)
+ # Jobs Worker Service (can scale with docker-compose up --scale jobs-worker=2)
   jobs-worker:
     build:
       context: .
