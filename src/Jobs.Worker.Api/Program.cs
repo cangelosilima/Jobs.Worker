@@ -52,13 +52,15 @@ builder.Services.AddScoped<IJobRepository, JobRepository>();
 builder.Services.AddScoped<IJobExecutionRepository, JobExecutionRepository>();
 builder.Services.AddScoped<IJobScheduleRepository, Jobs.Worker.Infrastructure.Repositories.JobScheduleRepository>();
 builder.Services.AddScoped<IAuditRepository, Jobs.Worker.Infrastructure.Repositories.AuditRepository>();
+builder.Services.AddScoped<IJobCircuitBreakerRepository, JobCircuitBreakerRepository>();
 
 // Add services
 builder.Services.AddScoped<IScheduleCalculator, ScheduleCalculator>();
 builder.Services.AddSingleton<IDistributedLockService, DistributedLockService>();
 
-// Add background service for SignalR notifications
+// Add background services
 builder.Services.AddHostedService<SignalRNotificationService>();
+builder.Services.AddHostedService<CircuitBreakerMonitoringService>();
 
 // Add handlers
 builder.Services.AddScoped<CreateJobCommandHandler>();
@@ -90,6 +92,7 @@ MapExecutionEndpoints(app);
 MapScheduleEndpoints(app);
 MapDashboardEndpoints(app);
 MapAuditEndpoints(app);
+MapCircuitBreakerEndpoints(app);
 MapHealthEndpoints(app);
 
 app.Run();
@@ -547,6 +550,127 @@ void MapAuditEndpoints(WebApplication app)
         var logs = await auditRepo.GetByEntityAsync(entityType, entityId);
         return Results.Ok(logs);
     }).WithName("GetAuditLogsByEntity");
+}
+
+void MapCircuitBreakerEndpoints(WebApplication app)
+{
+    var group = app.MapGroup("/api/circuit-breakers").WithTags("CircuitBreakers");
+
+    // Get all circuit breakers
+    group.MapGet("/", async (IJobCircuitBreakerRepository circuitBreakerRepo) =>
+    {
+        var circuitBreakers = await circuitBreakerRepo.GetAllAsync();
+        return Results.Ok(circuitBreakers.Select(cb => new
+        {
+            cb.Id,
+            cb.JobDefinitionId,
+            JobName = cb.JobDefinition?.Name,
+            cb.State,
+            cb.ConsecutiveFailures,
+            cb.LastFailureAtUtc,
+            cb.OpenedAtUtc,
+            cb.LastStateChangeAtUtc,
+            cb.HalfOpenAttempts,
+            cb.OpenReason,
+            cb.OpenedBy
+        }));
+    }).WithName("GetAllCircuitBreakers");
+
+    // Get circuit breaker by job ID
+    group.MapGet("/job/{jobId:guid}", async (Guid jobId, IJobCircuitBreakerRepository circuitBreakerRepo) =>
+    {
+        var circuitBreaker = await circuitBreakerRepo.GetByJobIdAsync(jobId);
+        if (circuitBreaker == null)
+            return Results.NotFound();
+
+        return Results.Ok(new
+        {
+            circuitBreaker.Id,
+            circuitBreaker.JobDefinitionId,
+            JobName = circuitBreaker.JobDefinition?.Name,
+            circuitBreaker.State,
+            circuitBreaker.ConsecutiveFailures,
+            circuitBreaker.LastFailureAtUtc,
+            circuitBreaker.OpenedAtUtc,
+            circuitBreaker.LastStateChangeAtUtc,
+            circuitBreaker.HalfOpenAttempts,
+            circuitBreaker.OpenReason,
+            circuitBreaker.OpenedBy
+        });
+    }).WithName("GetCircuitBreakerByJobId");
+
+    // Get open circuit breakers
+    group.MapGet("/open", async (IJobCircuitBreakerRepository circuitBreakerRepo) =>
+    {
+        var openCircuits = await circuitBreakerRepo.GetOpenCircuitsAsync();
+        return Results.Ok(openCircuits.Select(cb => new
+        {
+            cb.Id,
+            cb.JobDefinitionId,
+            JobName = cb.JobDefinition?.Name,
+            cb.State,
+            cb.ConsecutiveFailures,
+            cb.OpenedAtUtc,
+            cb.OpenReason,
+            cb.OpenedBy
+        }));
+    }).WithName("GetOpenCircuitBreakers");
+
+    // Manually close circuit breaker
+    group.MapPost("/{jobId:guid}/close", async (
+        Guid jobId,
+        IJobCircuitBreakerRepository circuitBreakerRepo,
+        IJobRepository jobRepo) =>
+    {
+        var circuitBreaker = await circuitBreakerRepo.GetByJobIdAsync(jobId);
+        if (circuitBreaker == null)
+            return Results.NotFound("Circuit breaker not found");
+
+        var job = await jobRepo.GetByIdAsync(jobId);
+        if (job == null)
+            return Results.NotFound("Job not found");
+
+        circuitBreaker.Close();
+        job.Activate("Manual");
+
+        await circuitBreakerRepo.UpdateAsync(circuitBreaker);
+        await jobRepo.UpdateAsync(job);
+
+        return Results.Ok(new { message = "Circuit breaker closed successfully" });
+    }).WithName("CloseCircuitBreaker");
+
+    // Manually open circuit breaker
+    group.MapPost("/{jobId:guid}/open", async (
+        Guid jobId,
+        string reason,
+        string openedBy,
+        IJobCircuitBreakerRepository circuitBreakerRepo,
+        IJobRepository jobRepo) =>
+    {
+        var circuitBreaker = await circuitBreakerRepo.GetByJobIdAsync(jobId);
+        if (circuitBreaker == null)
+        {
+            // Create new circuit breaker
+            var job = await jobRepo.GetByIdAsync(jobId);
+            if (job == null)
+                return Results.NotFound("Job not found");
+
+            circuitBreaker = new Jobs.Worker.Domain.Entities.JobCircuitBreaker(jobId);
+            await circuitBreakerRepo.AddAsync(circuitBreaker);
+        }
+
+        circuitBreaker.Open(reason, openedBy);
+        await circuitBreakerRepo.UpdateAsync(circuitBreaker);
+
+        var jobToDisable = await jobRepo.GetByIdAsync(jobId);
+        if (jobToDisable != null)
+        {
+            jobToDisable.Disable(openedBy, reason);
+            await jobRepo.UpdateAsync(jobToDisable);
+        }
+
+        return Results.Ok(new { message = "Circuit breaker opened successfully" });
+    }).WithName("OpenCircuitBreaker");
 }
 
 void MapHealthEndpoints(WebApplication app)

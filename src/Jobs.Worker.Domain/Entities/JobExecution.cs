@@ -30,6 +30,9 @@ public class JobExecution
     public virtual JobDefinition JobDefinition { get; private set; } = null!;
     public virtual JobSchedule? JobSchedule { get; private set; }
     public virtual ICollection<JobExecutionLog> Logs { get; private set; } = new List<JobExecutionLog>();
+    public virtual ICollection<StepExecution> StepExecutions { get; private set; } = new List<StepExecution>();
+    public virtual ICollection<JobCheckpoint> Checkpoints { get; private set; } = new List<JobCheckpoint>();
+    public virtual ICollection<TaskMapping> TaskMappings { get; private set; } = new List<TaskMapping>();
 
     private JobExecution() { }
 

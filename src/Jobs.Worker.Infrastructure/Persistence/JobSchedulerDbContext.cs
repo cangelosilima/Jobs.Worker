@@ -18,6 +18,14 @@ public class JobSchedulerDbContext : DbContext
     public DbSet<JobDependency> JobDependencies => Set<JobDependency>();
     public DbSet<JobOwnership> JobOwnerships => Set<JobOwnership>();
     public DbSet<JobAudit> JobAudits => Set<JobAudit>();
+    public DbSet<JobCircuitBreaker> JobCircuitBreakers => Set<JobCircuitBreaker>();
+    public DbSet<JobStep> JobSteps => Set<JobStep>();
+    public DbSet<StepExecution> StepExecutions => Set<StepExecution>();
+    public DbSet<JobCheckpoint> JobCheckpoints => Set<JobCheckpoint>();
+    public DbSet<JobTemplate> JobTemplates => Set<JobTemplate>();
+    public DbSet<JobFeatureFlag> JobFeatureFlags => Set<JobFeatureFlag>();
+    public DbSet<BackfillRequest> BackfillRequests => Set<BackfillRequest>();
+    public DbSet<TaskMapping> TaskMappings => Set<TaskMapping>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,6 +53,25 @@ public class JobSchedulerDbContext : DbContext
                 rp.Property(p => p.MaxDelaySeconds).HasColumnName("MaxDelaySeconds");
             });
 
+            entity.OwnsOne(e => e.CircuitBreakerPolicy, cbp =>
+            {
+                cbp.Property(p => p.IsEnabled).HasColumnName("CircuitBreakerEnabled");
+                cbp.Property(p => p.FailureThreshold).HasColumnName("CircuitBreakerFailureThreshold");
+                cbp.Property(p => p.ConsecutiveFailuresWindow).HasColumnName("CircuitBreakerFailuresWindow");
+                cbp.Property(p => p.OpenDurationSeconds).HasColumnName("CircuitBreakerOpenDuration");
+                cbp.Property(p => p.AutoRecover).HasColumnName("CircuitBreakerAutoRecover");
+                cbp.Property(p => p.HalfOpenMaxAttempts).HasColumnName("CircuitBreakerHalfOpenAttempts");
+            });
+
+            entity.OwnsOne(e => e.SlaPolicy, slap =>
+            {
+                slap.Property(p => p.IsEnabled).HasColumnName("SlaEnabled");
+                slap.Property(p => p.MaxDurationSeconds).HasColumnName("SlaMaxDurationSeconds");
+                slap.Property(p => p.WarningThresholdSeconds).HasColumnName("SlaWarningThresholdSeconds");
+                slap.Property(p => p.OnMissHandlerJobId).HasColumnName("SlaOnMissHandlerJobId");
+                slap.Property(p => p.AutoTriggerHandler).HasColumnName("SlaAutoTriggerHandler");
+            });
+
             entity.HasOne(e => e.Ownership)
                   .WithOne(o => o.JobDefinition)
                   .HasForeignKey<JobOwnership>(o => o.JobDefinitionId);
@@ -64,6 +91,10 @@ public class JobSchedulerDbContext : DbContext
             entity.HasMany(e => e.Executions)
                   .WithOne(ex => ex.JobDefinition)
                   .HasForeignKey(ex => ex.JobDefinitionId);
+
+            entity.HasOne(e => e.CircuitBreaker)
+                  .WithOne(cb => cb.JobDefinition)
+                  .HasForeignKey<JobCircuitBreaker>(cb => cb.JobDefinitionId);
         });
 
         // JobSchedule configuration
@@ -191,6 +222,119 @@ public class JobSchedulerDbContext : DbContext
             entity.Property(e => e.PerformedBy).HasMaxLength(100).IsRequired();
             entity.Property(e => e.IpAddress).HasMaxLength(50);
             entity.Property(e => e.UserAgent).HasMaxLength(500);
+        });
+
+        // JobCircuitBreaker configuration
+        modelBuilder.Entity<JobCircuitBreaker>(entity =>
+        {
+            entity.ToTable("JobCircuitBreaker");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.State).IsRequired();
+            entity.Property(e => e.OpenReason).HasMaxLength(500);
+            entity.Property(e => e.OpenedBy).HasMaxLength(100);
+        });
+
+        // JobStep configuration
+        modelBuilder.Entity<JobStep>(entity =>
+        {
+            entity.ToTable("JobStep");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.ExecutionAssembly).HasMaxLength(500);
+            entity.Property(e => e.ExecutionTypeName).HasMaxLength(500);
+            entity.Property(e => e.CreatedBy).HasMaxLength(100).IsRequired();
+
+            entity.OwnsOne(e => e.RetryPolicy, rp =>
+            {
+                rp.Property(p => p.MaxRetries).HasColumnName("MaxRetries");
+                rp.Property(p => p.Strategy).HasColumnName("RetryStrategy");
+                rp.Property(p => p.BaseDelaySeconds).HasColumnName("BaseDelaySeconds");
+                rp.Property(p => p.MaxDelaySeconds).HasColumnName("MaxDelaySeconds");
+            });
+
+            entity.HasOne(e => e.JobDefinition)
+                  .WithMany(j => j.Steps)
+                  .HasForeignKey(e => e.JobDefinitionId);
+        });
+
+        // StepExecution configuration
+        modelBuilder.Entity<StepExecution>(entity =>
+        {
+            entity.ToTable("StepExecution");
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(e => e.JobExecution)
+                  .WithMany(j => j.StepExecutions)
+                  .HasForeignKey(e => e.JobExecutionId);
+
+            entity.HasOne(e => e.JobStep)
+                  .WithMany(s => s.StepExecutions)
+                  .HasForeignKey(e => e.JobStepId);
+        });
+
+        // JobCheckpoint configuration
+        modelBuilder.Entity<JobCheckpoint>(entity =>
+        {
+            entity.ToTable("JobCheckpoint");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CheckpointName).HasMaxLength(200).IsRequired();
+
+            entity.HasOne(e => e.JobExecution)
+                  .WithMany(j => j.Checkpoints)
+                  .HasForeignKey(e => e.JobExecutionId);
+        });
+
+        // JobTemplate configuration
+        modelBuilder.Entity<JobTemplate>(entity =>
+        {
+            entity.ToTable("JobTemplate");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Category).HasMaxLength(100);
+            entity.Property(e => e.TemplateType).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.CreatedBy).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+        });
+
+        // JobFeatureFlag configuration
+        modelBuilder.Entity<JobFeatureFlag>(entity =>
+        {
+            entity.ToTable("JobFeatureFlag");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.FlagName).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.FlagValue).HasMaxLength(500);
+            entity.Property(e => e.CreatedBy).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+
+            entity.HasOne(e => e.JobDefinition)
+                  .WithMany(j => j.FeatureFlags)
+                  .HasForeignKey(e => e.JobDefinitionId);
+        });
+
+        // BackfillRequest configuration
+        modelBuilder.Entity<BackfillRequest>(entity =>
+        {
+            entity.ToTable("BackfillRequest");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.RequestedBy).HasMaxLength(100).IsRequired();
+
+            entity.HasOne(e => e.JobDefinition)
+                  .WithMany(j => j.BackfillRequests)
+                  .HasForeignKey(e => e.JobDefinitionId);
+        });
+
+        // TaskMapping configuration
+        modelBuilder.Entity<TaskMapping>(entity =>
+        {
+            entity.ToTable("TaskMapping");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.TaskIdentifier).HasMaxLength(200).IsRequired();
+
+            entity.HasOne(e => e.JobExecution)
+                  .WithMany(j => j.TaskMappings)
+                  .HasForeignKey(e => e.JobExecutionId);
         });
     }
 }
