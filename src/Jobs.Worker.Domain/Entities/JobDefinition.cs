@@ -19,6 +19,7 @@ public class JobDefinition
     public int TimeoutSeconds { get; private set; }
     public RetryPolicy RetryPolicy { get; private set; } = RetryPolicy.NoRetry();
     public CircuitBreakerPolicy CircuitBreakerPolicy { get; private set; } = CircuitBreakerPolicy.Disabled();
+    public SlaPolicy SlaPolicy { get; private set; } = SlaPolicy.Disabled();
     public int MaxConcurrentExecutions { get; private set; }
     public bool AllowManualTrigger { get; private set; }
     public int? ExpectedDurationSeconds { get; private set; }
@@ -41,6 +42,9 @@ public class JobDefinition
     public virtual ICollection<JobDependency> DependentJobs { get; private set; } = new List<JobDependency>();
     public virtual JobOwnership? Ownership { get; private set; }
     public virtual JobCircuitBreaker? CircuitBreaker { get; private set; }
+    public virtual ICollection<JobStep> Steps { get; private set; } = new List<JobStep>();
+    public virtual ICollection<JobFeatureFlag> FeatureFlags { get; private set; } = new List<JobFeatureFlag>();
+    public virtual ICollection<BackfillRequest> BackfillRequests { get; private set; } = new List<BackfillRequest>();
 
     private JobDefinition() { }
 
@@ -90,6 +94,11 @@ public class JobDefinition
     public void SetCircuitBreakerPolicy(CircuitBreakerPolicy policy)
     {
         CircuitBreakerPolicy = policy;
+    }
+
+    public void SetSlaPolicy(SlaPolicy policy)
+    {
+        SlaPolicy = policy;
     }
 
     public void SetExecutionCommand(string? command, string? containerImage = null)
