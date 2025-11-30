@@ -1,4 +1,4 @@
-name: Push Validation
+name: Push Validation (Bots & AI Only)
 
 on:
   push:
@@ -10,9 +10,38 @@ on:
       - '.github/**.md'
 
 jobs:
+  check-if-bot:
+    name: Check if pusher is Bot/AI
+    runs-on: ubuntu-latest
+    outputs:
+      is_bot: ${{ steps.check.outputs.is_bot }}
+    steps:
+      - name: Check if bot or AI
+        id: check
+        run: |
+          actor="${{ github.actor }}"
+          echo "Actor: $actor"
+
+          # Check if actor is a bot (contains 'bot' or known AI/automation patterns)
+          if [[ "$actor" == *"bot"* ]] || \
+             [[ "$actor" == *"claude"* ]] || \
+             [[ "$actor" == *"github-actions"* ]] || \
+             [[ "$actor" == *"dependabot"* ]] || \
+             [[ "$actor" == "[bot]"* ]] || \
+             [[ "$actor" == *"automation"* ]] || \
+             [[ "$actor" == *"ai"* ]]; then
+            echo "is_bot=true" >> $GITHUB_OUTPUT
+            echo "✅ Detected bot/AI pusher: $actor"
+          else
+            echo "is_bot=false" >> $GITHUB_OUTPUT
+            echo "⏭️  Human pusher detected: $actor - skipping validation"
+          fi
+
   quick-validation:
     name: Quick Build & Test Validation
     runs-on: ubuntu-latest
+    needs: check-if-bot
+    if: needs.check-if-bot.outputs.is_bot == 'true'
 
     steps:
       - name: Checkout code
@@ -57,11 +86,11 @@ jobs:
         if: always()
         run: |
           echo "=================================================="
-          echo "Push Validation Complete"
+          echo "🤖 Bot/AI Push Validation Complete"
           echo "=================================================="
           echo "Branch: ${{ github.ref_name }}"
           echo "Commit: ${{ github.sha }}"
-          echo "Author: ${{ github.actor }}"
+          echo "Bot/AI: ${{ github.actor }}"
           echo "=================================================="
           if [ $? -eq 0 ]; then
             echo "✅ All validations passed!"
@@ -71,21 +100,26 @@ jobs:
           fi
 
   block-if-failed:
-    name: Block Push If Validation Fails
+    name: Block Bot/AI Push If Validation Fails
     runs-on: ubuntu-latest
-    needs: quick-validation
-    if: failure()
+    needs: [check-if-bot, quick-validation]
+    if: always() && needs.check-if-bot.outputs.is_bot == 'true' && needs.quick-validation.result == 'failure'
 
     steps:
-      - name: Validation Failed - Block
+      - name: Bot/AI Validation Failed - Block
         run: |
-          echo "❌ PUSH VALIDATION FAILED ❌"
+          echo "❌ BOT/AI PUSH VALIDATION FAILED ❌"
           echo ""
-          echo "This push contains code that does not pass validation:"
+          echo "This push by ${{ github.actor }} contains code that does not pass validation:"
           echo "- Backend build or tests failed, OR"
           echo "- Frontend build or tests failed"
           echo ""
-          echo "Please fix the issues and push again."
+          echo "🤖 Bot/AI pushes must pass all tests before being accepted."
+          echo ""
+          echo "The bot/AI should:"
+          echo "1. Review the test failure logs above"
+          echo "2. Fix the failing tests"
+          echo "3. Push again with corrected code"
           echo ""
           echo "To test locally before pushing:"
           echo "  Backend: dotnet build && dotnet test"

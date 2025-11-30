@@ -4,31 +4,45 @@ This directory contains GitHub Actions workflows and repository configuration fo
 
 ## Workflows
 
-### 1. Push Validation (`push-validation.yml`) 🆕
+### 1. Push Validation - Bots & AI Only (`push-validation.yml`) 🤖
 
-**Triggered on:** Every push to any branch (excluding documentation)
+**Triggered on:** Every push to any branch (excluding documentation) **by bots or AI**
 
-**Purpose:** Ensures all code pushed to the repository passes basic quality checks, even on feature branches.
+**Purpose:** Ensures automated code (from bots/AI) passes quality checks before being accepted, while allowing human developers to iterate freely.
+
+**Bot Detection:**
+Automatically detects and validates pushes from:
+- Bots (username contains "bot")
+- AI assistants (username contains "claude", "ai")
+- GitHub Actions
+- Dependabot
+- Automation tools
 
 **Jobs:**
-- **Quick Build & Test Validation**
-  - Fast validation of both backend and frontend
-  - Builds .NET solution
-  - Runs all backend tests with minimal verbosity
-  - Builds React application
-  - Runs all frontend tests
-  - Provides clear success/failure summary
 
-- **Block If Validation Fails**
-  - Explicitly fails the workflow if validation doesn't pass
-  - Provides helpful error message with local testing commands
-  - Prevents broken code from being pushed
+1. **Check if pusher is Bot/AI**
+   - Analyzes `github.actor` username
+   - Determines if pusher is human or automated
+   - Skips validation for human developers
+
+2. **Quick Build & Test Validation** (only if bot/AI)
+   - Fast validation of both backend and frontend
+   - Builds .NET solution
+   - Runs all backend tests with minimal verbosity
+   - Builds React application
+   - Runs all frontend tests
+   - Provides clear success/failure summary
+
+3. **Block If Validation Fails** (only if bot/AI)
+   - Explicitly fails the workflow if validation doesn't pass
+   - Provides helpful error message
+   - Prevents broken automated code from being pushed
 
 **Why this matters:**
-- Catches errors immediately after push (not just on PR)
-- Validates feature branches continuously
-- Ensures Claude's pushes (and everyone's) meet quality standards
-- Fast feedback loop for developers
+- 🤖 Bot/AI code is validated immediately (catch errors fast)
+- 👨‍💻 Human developers can iterate freely (no slowdown)
+- ✅ Automated pushes meet quality standards
+- 🚀 Best of both worlds: safety + velocity
 
 ### 2. Pull Request Validation (`pr-validation.yml`)
 

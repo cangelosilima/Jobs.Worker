@@ -2,18 +2,27 @@
 
 This document describes the recommended branch protection rules for the repository.
 
-## Push Validation (All Branches)
+## Push Validation (Bots & AI Only)
 
-**NEW**: All pushes to any branch now require validation!
+**NEW**: All pushes by bots and AI are automatically validated!
 
-The `push-validation.yml` workflow automatically runs on every push to any branch:
+The `push-validation.yml` workflow automatically runs on pushes from:
+- 🤖 Bots (username contains "bot")
+- 🤖 AI assistants (username contains "claude", "ai")
+- 🤖 GitHub Actions (github-actions)
+- 🤖 Dependabot
+- 🤖 Other automation tools
+
+**Validation includes:**
 - ✅ Builds backend (.NET)
 - ✅ Runs all backend tests
 - ✅ Builds frontend (React)
 - ✅ Runs all frontend tests
-- ❌ **Blocks the push if any validation fails**
+- ❌ **Blocks bot/AI pushes if any validation fails**
 
-This ensures that even direct pushes (not through PRs) maintain code quality.
+**Human developers:** Your pushes are NOT validated by this workflow. You'll be validated when creating PRs instead, allowing for faster iteration during development.
+
+This ensures automated code meets quality standards while keeping development velocity high for humans.
 
 ## Main Branch Protection Rules
 
