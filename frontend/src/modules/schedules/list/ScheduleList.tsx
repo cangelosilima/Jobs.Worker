@@ -81,7 +81,7 @@ const ScheduleList = () => {
       field: 'recurrenceType',
       headerName: 'Type',
       width: 180,
-      valueFormatter: (value) => getRecurrenceTypeLabel(value),
+      valueFormatter: (params) => getRecurrenceTypeLabel(params.value),
     },
     {
       field: 'cronExpression',
@@ -100,13 +100,13 @@ const ScheduleList = () => {
       field: 'nextExecutionTime',
       headerName: 'Next Run',
       width: 200,
-      valueFormatter: (value) => (value ? dayjs(value).format('MMM DD, YYYY HH:mm') : '-'),
+      valueFormatter: (params) => (params.value ? dayjs(params.value).format('MMM DD, YYYY HH:mm') : '-'),
     },
     {
       field: 'lastExecutionTime',
       headerName: 'Last Run',
       width: 200,
-      valueFormatter: (value) => (value ? dayjs(value).format('MMM DD, YYYY HH:mm') : 'Never'),
+      valueFormatter: (params) => (params.value ? dayjs(params.value).format('MMM DD, YYYY HH:mm') : 'Never'),
     },
     {
       field: 'isActive',
@@ -124,13 +124,13 @@ const ScheduleList = () => {
       field: 'startDate',
       headerName: 'Start Date',
       width: 150,
-      valueFormatter: (value) => dayjs(value).format('MMM DD, YYYY'),
+      valueFormatter: (params) => dayjs(params.value).format('MMM DD, YYYY'),
     },
     {
       field: 'endDate',
       headerName: 'End Date',
       width: 150,
-      valueFormatter: (value) => (value ? dayjs(value).format('MMM DD, YYYY') : 'No end'),
+      valueFormatter: (params) => (params.value ? dayjs(params.value).format('MMM DD, YYYY') : 'No end'),
     },
   ];
 

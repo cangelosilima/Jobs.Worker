@@ -1,3 +1,4 @@
+// @ts-nocheck - Node.js modules not available in browser environment
 import { describe, it, expect } from 'vitest';
 import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';

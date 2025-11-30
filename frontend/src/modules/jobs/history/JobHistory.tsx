@@ -155,27 +155,27 @@ const JobHistory = () => {
       field: 'scheduledTime',
       headerName: 'Scheduled',
       width: 180,
-      valueFormatter: (value) => dayjs(value).format('MMM DD, HH:mm'),
+      valueFormatter: (params) => dayjs(params.value).format('MMM DD, HH:mm'),
     },
     {
       field: 'startTime',
       headerName: 'Started',
       width: 180,
-      valueFormatter: (value) => (value ? dayjs(value).format('MMM DD, HH:mm:ss') : '-'),
+      valueFormatter: (params) => (params.value ? dayjs(params.value).format('MMM DD, HH:mm:ss') : '-'),
     },
     {
       field: 'endTime',
       headerName: 'Ended',
       width: 180,
-      valueFormatter: (value) => (value ? dayjs(value).format('MMM DD, HH:mm:ss') : '-'),
+      valueFormatter: (params) => (params.value ? dayjs(params.value).format('MMM DD, HH:mm:ss') : '-'),
     },
     {
       field: 'durationSeconds',
       headerName: 'Duration',
       width: 120,
-      valueFormatter: (value) => {
-        if (!value) return '-';
-        const dur = dayjs.duration(value, 'seconds');
+      valueFormatter: (params) => {
+        if (!params.value) return '-';
+        const dur = dayjs.duration(params.value, 'seconds');
         if (dur.asHours() >= 1) {
           return dur.format('H[h] m[m]');
         } else if (dur.asMinutes() >= 1) {

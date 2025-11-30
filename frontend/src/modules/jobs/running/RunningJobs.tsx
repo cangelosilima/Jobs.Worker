@@ -96,7 +96,7 @@ const RunningJobs = () => {
           const updated = [...prev];
           updated[index] = {
             ...updated[index],
-            status: update.status as ExecutionStatus,
+            status: update.status as unknown as ExecutionStatus,
             startTime: update.startTime || updated[index].startTime,
             endTime: update.endTime || updated[index].endTime,
             output: update.output || updated[index].output,
@@ -176,21 +176,21 @@ const RunningJobs = () => {
       field: 'startTime',
       headerName: 'Started',
       width: 180,
-      valueFormatter: (value) => (value ? dayjs(value).format('MMM DD, HH:mm:ss') : '-'),
+      valueFormatter: (params) => (params.value ? dayjs(params.value).format('MMM DD, HH:mm:ss') : '-'),
     },
     {
       field: 'durationSeconds',
       headerName: 'Duration',
       width: 120,
-      valueGetter: (value, row) => {
-        if (!row.startTime) return null;
-        const start = dayjs(row.startTime);
-        const end = row.endTime ? dayjs(row.endTime) : dayjs();
+      valueGetter: (params) => {
+        if (!params.row.startTime) return null;
+        const start = dayjs(params.row.startTime);
+        const end = params.row.endTime ? dayjs(params.row.endTime) : dayjs();
         return end.diff(start, 'second');
       },
-      valueFormatter: (value) => {
-        if (!value) return '-';
-        const dur = dayjs.duration(value, 'seconds');
+      valueFormatter: (params) => {
+        if (!params.value) return '-';
+        const dur = dayjs.duration(params.value, 'seconds');
         if (dur.asHours() >= 1) {
           return dur.format('H[h] m[m] s[s]');
         } else if (dur.asMinutes() >= 1) {
