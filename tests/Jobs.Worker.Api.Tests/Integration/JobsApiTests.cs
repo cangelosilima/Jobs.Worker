@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Jobs.Worker.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
+using Program = Jobs.Worker.Api.Program;
 
 namespace Jobs.Worker.Api.Tests.Integration;
 
