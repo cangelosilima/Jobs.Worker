@@ -4,7 +4,33 @@ This directory contains GitHub Actions workflows and repository configuration fo
 
 ## Workflows
 
-### 1. Pull Request Validation (`pr-validation.yml`)
+### 1. Push Validation (`push-validation.yml`) 🆕
+
+**Triggered on:** Every push to any branch (excluding documentation)
+
+**Purpose:** Ensures all code pushed to the repository passes basic quality checks, even on feature branches.
+
+**Jobs:**
+- **Quick Build & Test Validation**
+  - Fast validation of both backend and frontend
+  - Builds .NET solution
+  - Runs all backend tests with minimal verbosity
+  - Builds React application
+  - Runs all frontend tests
+  - Provides clear success/failure summary
+
+- **Block If Validation Fails**
+  - Explicitly fails the workflow if validation doesn't pass
+  - Provides helpful error message with local testing commands
+  - Prevents broken code from being pushed
+
+**Why this matters:**
+- Catches errors immediately after push (not just on PR)
+- Validates feature branches continuously
+- Ensures Claude's pushes (and everyone's) meet quality standards
+- Fast feedback loop for developers
+
+### 2. Pull Request Validation (`pr-validation.yml`)
 
 **Triggered on:** Pull requests to `main` or `develop` branches
 
@@ -32,7 +58,7 @@ This directory contains GitHub Actions workflows and repository configuration fo
   - Comments on PR with status table
   - Fails PR if any check fails
 
-### 2. Main Branch CI (`ci-main.yml`)
+### 3. Main Branch CI (`ci-main.yml`)
 
 **Triggered on:** Pushes to `main` branch or manual dispatch
 
@@ -41,6 +67,22 @@ This directory contains GitHub Actions workflows and repository configuration fo
 - Generates and uploads code coverage reports
 - Creates release tags automatically
 - Publishes GitHub releases with changelogs
+
+## Workflow Hierarchy
+
+```
+Push to any branch
+    ↓
+[Push Validation] ← Runs immediately on push
+    ↓
+Create Pull Request
+    ↓
+[PR Validation] ← Comprehensive checks
+    ↓
+Merge to main
+    ↓
+[CI Main] ← Release automation
+```
 
 ## Repository Configuration
 

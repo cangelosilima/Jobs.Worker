@@ -1,0 +1,93 @@
+name: Push Validation
+
+on:
+  push:
+    branches:
+      - '**'  # Triggers on all branches
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/**.md'
+
+jobs:
+  quick-validation:
+    name: Quick Build & Test Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Backend validation
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore .NET dependencies
+        run: dotnet restore
+
+      - name: Build .NET solution
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run all .NET tests
+        run: dotnet test --configuration Release --no-build --verbosity minimal --no-restore
+
+      # Frontend validation
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          CI: true
+
+      - name: Run frontend tests
+        working-directory: ./frontend
+        run: npm test -- --run
+
+      - name: Validation Summary
+        if: always()
+        run: |
+          echo "=================================================="
+          echo "Push Validation Complete"
+          echo "=================================================="
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Author: ${{ github.actor }}"
+          echo "=================================================="
+          if [ $? -eq 0 ]; then
+            echo "✅ All validations passed!"
+          else
+            echo "❌ Validation failed - please fix before pushing again"
+            exit 1
+          fi
+
+  block-if-failed:
+    name: Block Push If Validation Fails
+    runs-on: ubuntu-latest
+    needs: quick-validation
+    if: failure()
+
+    steps:
+      - name: Validation Failed - Block
+        run: |
+          echo "❌ PUSH VALIDATION FAILED ❌"
+          echo ""
+          echo "This push contains code that does not pass validation:"
+          echo "- Backend build or tests failed, OR"
+          echo "- Frontend build or tests failed"
+          echo ""
+          echo "Please fix the issues and push again."
+          echo ""
+          echo "To test locally before pushing:"
+          echo "  Backend: dotnet build && dotnet test"
+          echo "  Frontend: cd frontend && npm ci && npm test && npm run build"
+          exit 1

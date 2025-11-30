@@ -2,14 +2,28 @@
 
 This document describes the recommended branch protection rules for the repository.
 
+## Push Validation (All Branches)
+
+**NEW**: All pushes to any branch now require validation!
+
+The `push-validation.yml` workflow automatically runs on every push to any branch:
+- ✅ Builds backend (.NET)
+- ✅ Runs all backend tests
+- ✅ Builds frontend (React)
+- ✅ Runs all frontend tests
+- ❌ **Blocks the push if any validation fails**
+
+This ensures that even direct pushes (not through PRs) maintain code quality.
+
 ## Main Branch Protection Rules
 
 ### Required Status Checks
 Configure these status checks to be required before merging:
 
-- ✅ **Backend Build & Test** - Must pass
-- ✅ **Frontend Build & Test** - Must pass
-- ✅ **Code Quality Checks** - Must pass
+- ✅ **Quick Build & Test Validation** (Push Validation) - Must pass
+- ✅ **Backend Build & Test** (PR Validation) - Must pass
+- ✅ **Frontend Build & Test** (PR Validation) - Must pass
+- ✅ **Code Quality Checks** (PR Validation) - Must pass
 - ✅ **PR Validation Summary** - Must pass
 
 ### Branch Protection Settings
@@ -25,9 +39,10 @@ Go to: **Settings → Branches → Add rule** for `main` branch
 - [x] Require status checks to pass before merging
   - [x] Require branches to be up to date before merging
   - Required status checks:
-    - `Backend Build & Test`
-    - `Frontend Build & Test`
-    - `Code Quality Checks`
+    - `Quick Build & Test Validation` (from Push Validation workflow)
+    - `Backend Build & Test` (from PR Validation workflow)
+    - `Frontend Build & Test` (from PR Validation workflow)
+    - `Code Quality Checks` (from PR Validation workflow)
     - `PR Validation Summary`
 
 - [x] Require conversation resolution before merging
