@@ -14,4 +14,5 @@ public interface IJobRepository
     Task UpdateAsync(JobDefinition job, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default);
+    Task AddOwnershipAsync(JobOwnership ownership, CancellationToken cancellationToken = default);
 }

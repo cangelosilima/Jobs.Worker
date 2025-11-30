@@ -21,6 +21,14 @@ public class JobScheduleRepository : IJobScheduleRepository
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
     }
 
+    public async Task<IEnumerable<JobSchedule>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.JobSchedules
+            .Include(s => s.JobDefinition)
+            .OrderByDescending(s => s.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IEnumerable<JobSchedule>> GetSchedulesForJobAsync(Guid jobId, CancellationToken cancellationToken = default)
     {
         return await _context.JobSchedules

@@ -133,8 +133,16 @@ public class CircuitBreakerMonitoringService : BackgroundService
             }
         }
 
-        // Update circuit breaker failure count
-        circuitBreaker.ConsecutiveFailures = consecutiveFailures;
+        // Update circuit breaker failure count using public method
+        for (int i = 0; i < consecutiveFailures; i++)
+        {
+            circuitBreaker.RecordFailure();
+        }
+        // Clear failures if needed
+        if (circuitBreaker.ConsecutiveFailures > consecutiveFailures)
+        {
+            circuitBreaker.RecordSuccess();
+        }
 
         // Check if we should open the circuit
         if (consecutiveFailures >= policy.FailureThreshold)

@@ -21,6 +21,13 @@ public class AuditRepository : IAuditRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<IEnumerable<JobAudit>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.JobAudits
+            .OrderByDescending(a => a.PerformedAtUtc)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IEnumerable<JobAudit>> GetAuditLogForJobAsync(Guid jobId, int pageSize = 100, CancellationToken cancellationToken = default)
     {
         return await _context.JobAudits

@@ -46,14 +46,17 @@ public class CreateJobCommandHandler
 
         await _jobRepository.AddAsync(job, cancellationToken);
 
-        // Create ownership
+        // Create ownership (prefer Owner object if provided)
+        var ownerName = !string.IsNullOrEmpty(request.OwnerName) ? request.OwnerName : request.Owner?.UserName ?? string.Empty;
+        var ownerEmail = !string.IsNullOrEmpty(request.OwnerEmail) ? request.OwnerEmail : request.Owner?.Email ?? string.Empty;
         var ownership = new JobOwnership(
             job.Id,
-            request.OwnerName,
-            request.OwnerEmail,
+            ownerName,
+            ownerEmail,
             request.TeamName,
             request.CreatedBy
         );
+        await _jobRepository.AddOwnershipAsync(ownership, cancellationToken);
 
         // Create audit log
         var audit = JobAudit.CreateJobCreated(

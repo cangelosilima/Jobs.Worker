@@ -23,6 +23,14 @@ public class JobExecutionRepository : IJobExecutionRepository
             .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
     }
 
+    public async Task<IEnumerable<JobExecution>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.JobExecutions
+            .Include(e => e.JobDefinition)
+            .OrderByDescending(e => e.QueuedAtUtc)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IEnumerable<JobExecution>> GetByJobIdAsync(Guid jobId, int pageSize = 50, CancellationToken cancellationToken = default)
     {
         return await _context.JobExecutions
