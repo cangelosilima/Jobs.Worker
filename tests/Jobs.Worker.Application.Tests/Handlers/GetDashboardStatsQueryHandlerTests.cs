@@ -101,7 +101,8 @@ public class GetDashboardStatsQueryHandlerTests
     private JobExecution CreateExecution(Guid jobId, ExecutionStatus status)
     {
         var scheduleId = Guid.NewGuid();
-        var execution = new JobExecution(jobId, scheduleId, DateTime.UtcNow, false, null);
+        var context = Jobs.Worker.Domain.ValueObjects.ExecutionContext.Create("test-host");
+        var execution = new JobExecution(jobId, scheduleId, context, null, "test-user", false, 3);
 
         if (status == ExecutionStatus.Running)
         {

@@ -703,3 +703,6 @@ public record UpdateJobCommand(Guid Id, string Name, string Description);
 
 // Command record for updating job status
 public record UpdateJobStatusCommand(JobStatus NewStatus, string UpdatedBy, string? Reason);
+
+// Make the implicit Program class accessible to integration tests
+public partial class Program { }
