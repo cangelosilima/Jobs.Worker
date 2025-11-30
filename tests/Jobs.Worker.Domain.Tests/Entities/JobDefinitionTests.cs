@@ -79,7 +79,7 @@ public class JobDefinitionTests
     {
         // Arrange
         var job = new JobDefinition("Test", "Desc", "Asm", "Class", "Method", "user");
-        var retryPolicy = new RetryPolicy(3, RetryStrategy.Exponential, 5, 60, 2.0);
+        var retryPolicy = new RetryPolicy(3, RetryStrategy.Exponential, 5, 60);
 
         // Act
         job.SetRetryPolicy(retryPolicy, "admin");
