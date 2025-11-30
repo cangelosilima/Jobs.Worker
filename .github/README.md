@@ -98,20 +98,103 @@ Uses GitHub's native authentication metadata to identify bots/AI:
 - Creates release tags automatically
 - Publishes GitHub releases with changelogs
 
+### 4. Auto Issue Management (`auto-issue-management.yml`) 🎯
+
+**Triggered on:**
+- Workflow completion (any CI workflow)
+- Pull request closure
+- Branch deletion
+
+**Purpose:** Automatically creates and manages GitHub issues for CI failures, keeping your issue tracker clean and up-to-date.
+
+**Features:**
+
+**📝 Auto-Create Issues on CI Failure:**
+- Creates a new issue when any CI workflow fails
+- Labels: `ci-failure`, `branch:branch-name`, `bug`, `automated`
+- Includes detailed failure information:
+  - Workflow name and run number
+  - Branch and commit SHA
+  - Direct link to failed workflow run
+  - Action items for fixing the issue
+- Updates existing issue if multiple failures occur on the same branch
+
+**✅ Auto-Close Issues on Success:**
+- Automatically closes the issue when CI succeeds again
+- Adds a detailed success comment with:
+  - Link to successful workflow run
+  - Commit that fixed the issue
+  - Issue reference (e.g., "Closes #123")
+  - Timestamp of resolution
+- Sets issue state to "completed"
+
+**🗑️ Auto-Close on PR/Branch Deletion:**
+- Closes related issues when PR is merged or closed
+- Closes related issues when branch is deleted
+- Sets issue state to "not_planned"
+- Adds explanation comment
+
+**Jobs:**
+
+1. **Handle Workflow Completion**
+   - Monitors all CI workflows (Push Validation, PR Validation, Main CI)
+   - Creates issues for failures
+   - Closes issues for successes
+   - Prevents duplicate issues per branch/workflow
+
+2. **Handle PR Closure**
+   - Detects when PRs are closed or merged
+   - Closes all related CI failure issues
+   - Adds context about PR state (merged vs closed)
+
+3. **Handle Branch Deletion**
+   - Detects branch deletions
+   - Closes all CI failure issues for that branch
+   - Cleans up stale issues
+
+**Issue Lifecycle Example:**
+
+```
+CI Failure on feature/new-feature
+    ↓
+🔴 Issue Created: "CI Failure: Pull Request Validation on feature/new-feature"
+    ↓
+Developer fixes the issue and pushes
+    ↓
+CI Success
+    ↓
+✅ Issue Auto-Closed with comment: "Fixed! See successful run #123"
+    ↓
+Issue closed with reference to the fix
+```
+
+**Benefits:**
+- 🎯 Never miss a CI failure - automatic issue tracking
+- 🧹 No manual issue management - fully automated lifecycle
+- 📊 Clear audit trail of CI failures and resolutions
+- 🔗 Direct links between issues and workflow runs
+- 🚀 Keeps issue tracker clean and current
+
 ## Workflow Hierarchy
 
 ```
 Push to any branch
     ↓
 [Push Validation] ← Runs immediately on push
-    ↓
-Create Pull Request
-    ↓
+    ↓                     ↓ (if failure)
+Create Pull Request      [Auto Issue] ← Creates issue
+    ↓                     ↓ (on success)
 [PR Validation] ← Comprehensive checks
-    ↓
-Merge to main
+    ↓                     ↓ (if failure)
+Merge to main            [Auto Issue] ← Closes issue on fix
     ↓
 [CI Main] ← Release automation
+    ↓
+[Auto Issue] ← Tracks failures/successes
+
+Branch/PR Deletion
+    ↓
+[Auto Issue] ← Closes related issues
 ```
 
 ## Repository Configuration
@@ -226,6 +309,32 @@ npm test -- --watch
 1. Review security scan output
 2. Update vulnerable packages
 3. If false positive, add to ignore list
+
+### Auto-Generated CI Failure Issues
+
+The `auto-issue-management.yml` workflow automatically creates issues when CI fails:
+
+**What to do when you receive a CI failure issue:**
+
+1. 📋 **Check the issue** - It contains a direct link to the failed workflow run
+2. 🔍 **Review the logs** - Click the workflow run link and examine the failure
+3. 🛠️ **Fix the issue** - Make the necessary code changes
+4. ✅ **Push your fix** - The CI will run again
+5. 🎉 **Automatic closure** - If CI passes, the issue closes automatically
+
+**Issue Labels:**
+- `ci-failure` - Identifies auto-generated CI failure issues
+- `branch:branch-name` - Shows which branch failed
+- `bug` - Categorizes as a bug
+- `automated` - Indicates automated creation
+
+**Manual Closure:**
+If you want to close an issue without fixing (e.g., abandoned branch):
+- Just delete the branch or close the PR - the issue closes automatically
+- Or manually close the issue with a comment explaining why
+
+**Viewing All CI Failures:**
+Filter issues by label: `label:ci-failure` to see all current CI failures
 
 ## Workflow Secrets
 
