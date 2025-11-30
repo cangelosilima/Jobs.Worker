@@ -10,18 +10,34 @@ This directory contains GitHub Actions workflows and repository configuration fo
 
 **Purpose:** Ensures automated code (from bots/AI) passes quality checks before being accepted, while allowing human developers to iterate freely.
 
-**Bot Detection:**
-Automatically detects and validates pushes from:
-- Bots (username contains "bot")
-- AI assistants (username contains "claude", "ai")
-- GitHub Actions
-- Dependabot
-- Automation tools
+**Bot Detection (Based on Authentication):**
+Uses GitHub's native authentication metadata to identify bots/AI:
+
+1. **`github.event.pusher.type == "Bot"`** ← Most reliable
+   - GitHub Apps and automated tools use Bot type
+   - Native GitHub authentication check
+
+2. **GitHub Bot Naming Convention**
+   - Username ends with `[bot]` (e.g., `dependabot[bot]`)
+
+3. **Commit Author Email Pattern**
+   - Bot-specific email patterns in commit metadata
+
+4. **GitHub Actions Token**
+   - Identifies `github-actions` automation
+
+**Human Detection:**
+- OAuth authentication (web login)
+- Personal Access Token (PAT)
+- SSH keys
+- Any non-bot GitHub authentication
 
 **Jobs:**
 
 1. **Check if pusher is Bot/AI**
-   - Analyzes `github.actor` username
+   - Analyzes `github.event.pusher.type` (primary)
+   - Checks bot naming conventions (secondary)
+   - Verifies commit author patterns (fallback)
    - Determines if pusher is human or automated
    - Skips validation for human developers
 

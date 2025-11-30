@@ -6,12 +6,27 @@ This document describes the recommended branch protection rules for the reposito
 
 **NEW**: All pushes by bots and AI are automatically validated!
 
-The `push-validation.yml` workflow automatically runs on pushes from:
-- 🤖 Bots (username contains "bot")
-- 🤖 AI assistants (username contains "claude", "ai")
-- 🤖 GitHub Actions (github-actions)
-- 🤖 Dependabot
-- 🤖 Other automation tools
+The `push-validation.yml` workflow uses **GitHub's native authentication metadata** to detect bots/AI:
+
+**Bot/AI Detection Methods (in order):**
+1. ✅ **`pusher.type == "Bot"`** - GitHub's native bot detection
+   - GitHub Apps (using app tokens)
+   - Automated tools with bot credentials
+
+2. ✅ **Bot naming convention** - Username ends with `[bot]`
+   - Example: `dependabot[bot]`, `renovate[bot]`
+
+3. ✅ **Commit author email** - Bot email patterns
+   - Bot-specific email addresses in commits
+
+4. ✅ **GitHub Actions** - `github-actions` actor
+   - Workflows using GITHUB_TOKEN
+
+**Human Detection:**
+- ❌ OAuth authentication (web login)
+- ❌ Personal Access Token (PAT)
+- ❌ SSH key authentication
+- ❌ Any standard user authentication
 
 **Validation includes:**
 - ✅ Builds backend (.NET)
@@ -20,7 +35,7 @@ The `push-validation.yml` workflow automatically runs on pushes from:
 - ✅ Runs all frontend tests
 - ❌ **Blocks bot/AI pushes if any validation fails**
 
-**Human developers:** Your pushes are NOT validated by this workflow. You'll be validated when creating PRs instead, allowing for faster iteration during development.
+**Human developers:** Your pushes (OAuth/PAT/SSH) are NOT validated by this workflow. You'll be validated when creating PRs instead, allowing for faster iteration during development.
 
 This ensures automated code meets quality standards while keeping development velocity high for humans.
 
