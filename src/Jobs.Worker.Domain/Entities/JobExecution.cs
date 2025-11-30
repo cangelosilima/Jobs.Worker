@@ -39,7 +39,7 @@ public class JobExecution
     public JobExecution(
         Guid jobDefinitionId,
         Guid? scheduleId,
-        ValueObjects.ExecutionContext context,
+        Jobs.Worker.Domain.ValueObjects.ExecutionContext context,
         string? inputPayload,
         string? triggeredBy,
         bool isManual,

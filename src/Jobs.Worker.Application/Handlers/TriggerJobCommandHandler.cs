@@ -31,7 +31,7 @@ public class TriggerJobCommandHandler
             throw new InvalidOperationException($"Job {job.Name} is not active");
         }
 
-        var context = ValueObjects.ExecutionContext.Create(Environment.MachineName);
+        var context = Jobs.Worker.Domain.ValueObjects.ExecutionContext.Create(Environment.MachineName);
         var execution = new JobExecution(
             job.Id,
             null,
