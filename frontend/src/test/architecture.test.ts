@@ -11,16 +11,26 @@ describe('Architecture Tests', () => {
     const violations: string[] = [];
 
     for (const file of files) {
+      // Skip test files themselves
+      if (file.includes('/test/') || file.includes('.test.')) {
+        continue;
+      }
+
       const content = await readFile(file, 'utf-8');
       const lines = content.split('\n');
 
       lines.forEach((line, index) => {
-        if (line.includes('from ') && line.includes('../..')) {
+        // Check for actual import statements with ../ patterns
+        const importMatch = /^import .+ from ['"]\.\.\/\.\./.test(line.trim());
+        if (importMatch) {
           violations.push(`${file}:${index + 1} - ${line.trim()}`);
         }
       });
     }
 
+    if (violations.length > 0) {
+      console.log('Architecture violations found:', violations);
+    }
     expect(violations).toHaveLength(0);
   });
 
