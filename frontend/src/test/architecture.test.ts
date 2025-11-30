@@ -61,7 +61,7 @@ describe('Architecture Tests', () => {
 
       lines.forEach((line, index) => {
         // Check if importing from another module
-        const moduleImportRegex = /from ['"]@\/modules\/([^'"\/]+)/;
+        const moduleImportRegex = /from ['"]@\/modules\/([^'"/]+)/;
         const match = line.match(moduleImportRegex);
 
         if (match && match[1] !== currentModule) {

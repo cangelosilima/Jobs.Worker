@@ -110,7 +110,7 @@ const RunningJobs = () => {
       });
     };
 
-    const handleJobStarted = (update: JobExecutionUpdate) => {
+    const handleJobStarted = (_update: JobExecutionUpdate) => {
       refetch();
     };
 

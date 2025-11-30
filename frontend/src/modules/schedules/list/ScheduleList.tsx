@@ -9,11 +9,11 @@ import {
   CircularProgress,
   Chip,
 } from '@mui/material';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Add as AddIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { jobsApi } from '@/api/jobs.api';
-import { RecurrenceType, JobDefinitionResponse } from '@/api/types';
+import { RecurrenceType } from '@/api/types';
 import { useAuthStore } from '@/state/auth.store';
 import dayjs from 'dayjs';
 

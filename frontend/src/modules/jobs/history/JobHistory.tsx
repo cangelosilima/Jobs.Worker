@@ -24,7 +24,6 @@ import {
   Refresh as RefreshIcon,
   FilterList as FilterListIcon,
   Visibility as VisibilityIcon,
-  ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
