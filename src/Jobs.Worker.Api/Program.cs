@@ -120,10 +120,20 @@ void MapJobEndpoints(WebApplication app)
     }).WithName("GetJobById");
 
     // Create job
-    group.MapPost("/", async (CreateJobCommand command, CreateJobCommandHandler handler) =>
+    group.MapPost("/", async (CreateJobCommand request, CreateJobCommandHandler handler, ILogger<Program> logger) =>
     {
-        var jobId = await handler.HandleAsync(command);
-        return Results.Created($"/api/jobs/{jobId}", new { id = jobId });
+        try
+        {
+            logger.LogInformation("Creating job: {JobName}", request.Name);
+            var jobId = await handler.HandleAsync(request);
+            logger.LogInformation("Job created successfully: {JobId}", jobId);
+            return Results.Created($"/api/jobs/{jobId}", new { id = jobId });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating job: {Message}", ex.Message);
+            return Results.StatusCode(StatusCodes.Status500InternalServerError);
+        }
     }).WithName("CreateJob");
 
     // Update job
