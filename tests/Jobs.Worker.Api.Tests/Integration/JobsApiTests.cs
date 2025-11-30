@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Jobs.Worker.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Xunit;
 
 namespace Jobs.Worker.Api.Tests.Integration;
 

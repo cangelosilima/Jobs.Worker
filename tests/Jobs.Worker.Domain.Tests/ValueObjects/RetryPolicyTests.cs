@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Jobs.Worker.Domain.Enums;
 using Jobs.Worker.Domain.ValueObjects;
+using Xunit;
 
 namespace Jobs.Worker.Domain.Tests.ValueObjects;
 

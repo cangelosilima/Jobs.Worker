@@ -5,6 +5,7 @@ using Jobs.Worker.Application.Queries;
 using Jobs.Worker.Domain.Entities;
 using Jobs.Worker.Domain.Enums;
 using Moq;
+using Xunit;
 
 namespace Jobs.Worker.Application.Tests.Handlers;
 
