@@ -35,7 +35,7 @@ jobs:
 
       - name: Handle Failure - Create or Update Issue
         if: github.event.workflow_run.conclusion == 'failure'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const workflowName = '${{ github.event.workflow_run.name }}';
@@ -121,7 +121,7 @@ jobs:
 
       - name: Handle Success - Close Related Issues
         if: github.event.workflow_run.conclusion == 'success'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const workflowName = '${{ github.event.workflow_run.name }}';
@@ -187,7 +187,7 @@ jobs:
 
     steps:
       - name: Close CI Issues for Closed PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const branch = context.payload.pull_request.head.ref;
@@ -241,7 +241,7 @@ jobs:
 
     steps:
       - name: Close CI Issues for Deleted Branch
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const branch = context.payload.ref;
