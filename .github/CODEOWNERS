@@ -1,0 +1,21 @@
+# Code Owners for Jobs.Worker
+
+# Default owners for everything in the repo
+*       @cangelosilima
+
+# Backend
+/src/                           @cangelosilima
+/tests/                         @cangelosilima
+
+# Frontend
+/frontend/                      @cangelosilima
+
+# Infrastructure & CI/CD
+/.github/                       @cangelosilima
+/docker-compose.yml             @cangelosilima
+/Dockerfile                     @cangelosilima
+
+# Documentation
+/README.md                      @cangelosilima
+/TESTING.md                     @cangelosilima
+/docs/                          @cangelosilima

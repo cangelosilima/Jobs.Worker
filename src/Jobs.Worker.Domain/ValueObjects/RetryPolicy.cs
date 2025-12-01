@@ -36,6 +36,6 @@ public class RetryPolicy
         };
     }
 
-    public static RetryPolicy NoRetry() => new(0, RetryStrategy.None, 0);
+    public static RetryPolicy NoRetry() => new(0, RetryStrategy.None, 1);
     public static RetryPolicy Default() => new(3, RetryStrategy.ExponentialWithJitter, 30, 300);
 }

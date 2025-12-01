@@ -79,7 +79,7 @@ public class SchedulerWorker : BackgroundService
                     }
 
                     // Create execution
-                    var context = ExecutionContext.Create(_hostInstance);
+                    var context = Jobs.Worker.Domain.ValueObjects.ExecutionContext.Create(_hostInstance);
                     var execution = new JobExecution(
                         schedule.JobDefinitionId,
                         schedule.Id,

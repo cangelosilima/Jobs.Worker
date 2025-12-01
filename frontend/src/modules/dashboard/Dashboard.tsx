@@ -65,7 +65,7 @@ const Dashboard = () => {
 
   // Subscribe to real-time metrics updates
   useEffect(() => {
-    const handleMetricsUpdate = (data: MetricsUpdate) => {
+    const handleMetricsUpdate = (_data: MetricsUpdate) => {
       refetchStats();
     };
 

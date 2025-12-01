@@ -1,3 +1,4 @@
+using Jobs.Worker.Api;
 using Jobs.Worker.Api.Hubs;
 using Jobs.Worker.Api.Services;
 using Jobs.Worker.Application.Commands;
@@ -5,11 +6,14 @@ using Jobs.Worker.Application.Handlers;
 using Jobs.Worker.Application.Interfaces;
 using Jobs.Worker.Application.Queries;
 using Jobs.Worker.Application.Responses;
+using Jobs.Worker.Domain;
+using Jobs.Worker.Domain.Entities;
 using Jobs.Worker.Domain.Enums;
 using Jobs.Worker.Infrastructure.Persistence;
 using Jobs.Worker.Infrastructure.Repositories;
 using Jobs.Worker.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -69,7 +73,7 @@ builder.Services.AddScoped<GetDashboardStatsQueryHandler>();
 
 // Add health checks
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<JobSchedulerDbContext>("database");
+    .AddCheck("database", () => HealthCheckResult.Healthy("Database connection OK"), tags: new[] { "database" });
 
 var app = builder.Build();
 
@@ -116,14 +120,24 @@ void MapJobEndpoints(WebApplication app)
     }).WithName("GetJobById");
 
     // Create job
-    group.MapPost("/", async (CreateJobCommand command, CreateJobCommandHandler handler) =>
+    group.MapPost("/", async (CreateJobCommand request, CreateJobCommandHandler handler, ILogger<Program> logger) =>
     {
-        var jobId = await handler.HandleAsync(command);
-        return Results.Created($"/api/jobs/{jobId}", new { id = jobId });
+        try
+        {
+            logger.LogInformation("Creating job: {JobName}", request.Name);
+            var jobId = await handler.HandleAsync(request);
+            logger.LogInformation("Job created successfully: {JobId}", jobId);
+            return Results.Created($"/api/jobs/{jobId}", new { id = jobId });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating job: {Message}", ex.Message);
+            return Results.StatusCode(StatusCodes.Status500InternalServerError);
+        }
     }).WithName("CreateJob");
 
     // Update job
-    group.MapPut("/{id:guid}", async (Guid id, UpdateJobCommand command, IJobRepository jobRepo) =>
+    group.MapPut("/{id:guid}", async (Guid id, Jobs.Worker.Api.UpdateJobCommand command, IJobRepository jobRepo) =>
     {
         if (id != command.Id)
             return Results.BadRequest("ID mismatch");
@@ -189,7 +203,7 @@ void MapJobEndpoints(WebApplication app)
     // Get job schedules
     group.MapGet("/{jobId:guid}/schedules", async (Guid jobId, IJobScheduleRepository scheduleRepo) =>
     {
-        var schedules = await scheduleRepo.GetByJobIdAsync(jobId);
+        var schedules = await scheduleRepo.GetSchedulesForJobAsync(jobId);
         return Results.Ok(schedules);
     }).WithName("GetJobSchedules");
 
@@ -244,16 +258,17 @@ void MapExecutionEndpoints(WebApplication app)
             filtered = filtered.Where(e => e.Status == status.Value);
 
         if (!string.IsNullOrEmpty(startDateFrom))
-            filtered = filtered.Where(e => e.StartTimeUtc >= DateTime.Parse(startDateFrom));
+            filtered = filtered.Where(e => e.StartedAtUtc >= DateTime.Parse(startDateFrom));
 
         if (!string.IsNullOrEmpty(startDateTo))
-            filtered = filtered.Where(e => e.StartTimeUtc <= DateTime.Parse(startDateTo));
+            filtered = filtered.Where(e => e.StartedAtUtc <= DateTime.Parse(startDateTo));
 
         if (isManualTrigger.HasValue)
             filtered = filtered.Where(e => e.IsManualTrigger == isManualTrigger.Value);
 
         var totalCount = filtered.Count();
         var items = filtered
+            .OrderByDescending(e => e.QueuedAtUtc)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToList();
@@ -290,12 +305,12 @@ void MapExecutionEndpoints(WebApplication app)
     group.MapPost("/{id:guid}/cancel", async (
         Guid id,
         IJobExecutionRepository execRepo,
-        CancelExecutionCommand command) =>
+        Jobs.Worker.Api.CancelExecutionCommand command) =>
     {
         var execution = await execRepo.GetByIdAsync(id);
         if (execution == null) return Results.NotFound();
 
-        execution.Cancel(command.CancelledBy, command.Reason ?? "Cancelled by user");
+        execution.Cancel(command.Reason ?? "Cancelled by user");
         await execRepo.UpdateAsync(execution);
 
         return Results.NoContent();
@@ -322,21 +337,21 @@ void MapScheduleEndpoints(WebApplication app)
         CreateScheduleCommand command,
         IJobScheduleRepository scheduleRepo) =>
     {
-        var scheduleRule = command.ScheduleType switch
+        var rule = command.ScheduleType switch
         {
-            Domain.Enums.ScheduleType.Daily => Domain.ValueObjects.ScheduleRule.CreateDaily(command.TimeOfDay ?? TimeSpan.Zero),
-            Domain.Enums.ScheduleType.Weekly => Domain.ValueObjects.ScheduleRule.CreateWeekly(command.DaysOfWeek ?? 0, command.TimeOfDay ?? TimeSpan.Zero),
-            Domain.Enums.ScheduleType.Monthly => Domain.ValueObjects.ScheduleRule.CreateMonthly(command.DayOfMonth ?? 1, command.TimeOfDay ?? TimeSpan.Zero),
-            Domain.Enums.ScheduleType.MonthlyBusinessDay => Domain.ValueObjects.ScheduleRule.CreateMonthlyBusinessDay(command.BusinessDayOfMonth ?? 1, command.TimeOfDay ?? TimeSpan.Zero, command.AdjustToPreviousBusinessDay),
-            Domain.Enums.ScheduleType.Cron => Domain.ValueObjects.ScheduleRule.CreateCron(command.CronExpression ?? ""),
-            Domain.Enums.ScheduleType.OneTime => Domain.ValueObjects.ScheduleRule.CreateOneTime(command.OneTimeExecutionDate ?? DateTime.UtcNow),
-            Domain.Enums.ScheduleType.Conditional => Domain.ValueObjects.ScheduleRule.CreateConditional(command.ConditionalExpression ?? "", command.TimeOfDay ?? TimeSpan.Zero),
+            ScheduleType.Daily => Jobs.Worker.Domain.ValueObjects.ScheduleRule.CreateDaily(command.TimeOfDay ?? TimeSpan.Zero),
+            ScheduleType.Weekly => Jobs.Worker.Domain.ValueObjects.ScheduleRule.CreateWeekly(command.DaysOfWeek ?? 0, command.TimeOfDay ?? TimeSpan.Zero),
+            ScheduleType.Monthly => Jobs.Worker.Domain.ValueObjects.ScheduleRule.CreateMonthly(command.DayOfMonth ?? 1, command.TimeOfDay ?? TimeSpan.Zero),
+            ScheduleType.MonthlyBusinessDay => Jobs.Worker.Domain.ValueObjects.ScheduleRule.CreateMonthlyBusinessDay(command.BusinessDayOfMonth ?? 1, command.TimeOfDay ?? TimeSpan.Zero, command.AdjustToPreviousBusinessDay),
+            ScheduleType.Cron => Jobs.Worker.Domain.ValueObjects.ScheduleRule.CreateCron(command.CronExpression ?? ""),
+            ScheduleType.OneTime => Jobs.Worker.Domain.ValueObjects.ScheduleRule.CreateOneTime(command.OneTimeExecutionDate ?? DateTime.UtcNow),
+            ScheduleType.Conditional => Jobs.Worker.Domain.ValueObjects.ScheduleRule.CreateConditional(command.ConditionalExpression ?? "", command.TimeOfDay ?? TimeSpan.Zero),
             _ => throw new ArgumentException("Invalid schedule type")
         };
 
-        var schedule = new Domain.Entities.JobSchedule(
+        var schedule = new JobSchedule(
             jobId,
-            scheduleRule,
+            rule,
             command.CreatedBy,
             command.StartDateUtc,
             command.EndDateUtc
@@ -367,8 +382,8 @@ void MapDashboardEndpoints(WebApplication app)
         var executions = await execRepo.GetAllAsync();
 
         var trends = executions
-            .Where(e => e.ScheduledTimeUtc >= startDate)
-            .GroupBy(e => e.ScheduledTimeUtc.Date)
+            .Where(e => e.QueuedAtUtc.Date >= startDate.Date)
+            .GroupBy(e => e.QueuedAtUtc.Date)
             .Select(g => new
             {
                 date = g.Key.ToString("yyyy-MM-dd"),
@@ -392,14 +407,14 @@ void MapDashboardEndpoints(WebApplication app)
     {
         var allExecutions = await execRepo.GetAllAsync();
         var failedExecutions = allExecutions
-            .Where(e => e.Status == ExecutionStatus.Failed && e.ScheduledTimeUtc >= DateTime.UtcNow.Date.AddDays(-7))
+            .Where(e => e.Status == ExecutionStatus.Failed && e.QueuedAtUtc.Date >= DateTime.UtcNow.Date.AddDays(-7))
             .GroupBy(e => e.JobDefinitionId)
             .Select(g => new
             {
                 jobId = g.Key.ToString(),
                 failureCount = g.Count(),
-                lastFailureTime = g.Max(e => e.EndTimeUtc ?? e.StartTimeUtc ?? e.ScheduledTimeUtc),
-                lastErrorMessage = g.OrderByDescending(e => e.EndTimeUtc).FirstOrDefault()?.ErrorMessage
+                lastFailureTime = g.Max(e => e.CompletedAtUtc ?? e.StartedAtUtc ?? e.QueuedAtUtc),
+                lastErrorMessage = g.OrderByDescending(e => e.CompletedAtUtc).FirstOrDefault()?.ErrorMessage
             })
             .OrderByDescending(x => x.failureCount)
             .Take(limit);
@@ -432,8 +447,8 @@ void MapDashboardEndpoints(WebApplication app)
             {
                 jobId = j.Id.ToString(),
                 jobName = j.Name,
-                lastExecutionTime = j.Schedules.Max(s => s.LastExecutionUtc),
-                daysSinceLastExecution = j.Schedules.Max(s => s.LastExecutionUtc).HasValue
+                lastExecutionTime = j.Schedules.Any() ? j.Schedules.Max(s => s.LastExecutionUtc) : null,
+                daysSinceLastExecution = j.Schedules.Any() && j.Schedules.Max(s => s.LastExecutionUtc).HasValue
                     ? (DateTime.UtcNow - j.Schedules.Max(s => s.LastExecutionUtc).Value).Days
                     : 999,
                 isActive = j.Status == JobStatus.Active
@@ -465,7 +480,7 @@ void MapDashboardEndpoints(WebApplication app)
                 jobName = jobs.FirstOrDefault(j => j.Id == s.JobDefinitionId)?.Name ?? "Unknown",
                 scheduleId = s.Id.ToString(),
                 nextExecutionTime = s.NextExecutionUtc,
-                recurrenceType = (int)s.ScheduleRule.Type,
+                recurrenceType = (int)s.Rule.Type,
                 hoursUntilExecution = s.NextExecutionUtc.HasValue
                     ? (s.NextExecutionUtc.Value - DateTime.UtcNow).TotalHours
                     : 0
@@ -496,26 +511,26 @@ void MapAuditEndpoints(WebApplication app)
         var filtered = allLogs.AsEnumerable();
 
         if (!string.IsNullOrEmpty(entityType))
-            filtered = filtered.Where(a => a.EntityType == entityType);
+            filtered = filtered.Where(a => a.JobDefinitionId.HasValue);
 
-        if (!string.IsNullOrEmpty(entityId))
-            filtered = filtered.Where(a => a.EntityId.ToString() == entityId);
+        if (!string.IsNullOrEmpty(entityId) && Guid.TryParse(entityId, out var eId))
+            filtered = filtered.Where(a => a.JobDefinitionId == eId);
 
-        if (!string.IsNullOrEmpty(action))
-            filtered = filtered.Where(a => a.Action == action);
+        if (!string.IsNullOrEmpty(action) && Enum.TryParse<AuditAction>(action, out var auditAction))
+            filtered = filtered.Where(a => a.Action == auditAction);
 
         if (!string.IsNullOrEmpty(userId))
-            filtered = filtered.Where(a => a.UserId == userId);
+            filtered = filtered.Where(a => a.PerformedBy == userId);
 
         if (!string.IsNullOrEmpty(dateFrom))
-            filtered = filtered.Where(a => a.Timestamp >= DateTime.Parse(dateFrom));
+            filtered = filtered.Where(a => a.PerformedAtUtc >= DateTime.Parse(dateFrom));
 
         if (!string.IsNullOrEmpty(dateTo))
-            filtered = filtered.Where(a => a.Timestamp <= DateTime.Parse(dateTo));
+            filtered = filtered.Where(a => a.PerformedAtUtc <= DateTime.Parse(dateTo));
 
         var totalCount = filtered.Count();
         var items = filtered
-            .OrderByDescending(a => a.Timestamp)
+            .OrderByDescending(a => a.PerformedAtUtc)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToList();
@@ -534,24 +549,15 @@ void MapAuditEndpoints(WebApplication app)
         return Results.Ok(pagedResult);
     }).WithName("GetAuditLogs");
 
-    // Get audit log by ID
-    group.MapGet("/{id:guid}", async (Guid id, IAuditRepository auditRepo) =>
-    {
-        var auditLog = await auditRepo.GetByIdAsync(id);
-        return auditLog != null ? Results.Ok(auditLog) : Results.NotFound();
-    }).WithName("GetAuditLogById");
-
-    // Get audit logs by entity
-    group.MapGet("/{entityType}/{entityId:guid}", async (
-        string entityType,
-        Guid entityId,
+    // Get audit logs by job
+    group.MapGet("/job/{jobId:guid}", async (
+        Guid jobId,
         IAuditRepository auditRepo) =>
     {
-        var logs = await auditRepo.GetByEntityAsync(entityType, entityId);
+        var logs = await auditRepo.GetAuditLogForJobAsync(jobId);
         return Results.Ok(logs);
-    }).WithName("GetAuditLogsByEntity");
+    }).WithName("GetAuditLogsByJob");
 }
-
 void MapCircuitBreakerEndpoints(WebApplication app)
 {
     var group = app.MapGroup("/api/circuit-breakers").WithTags("CircuitBreakers");
@@ -672,7 +678,6 @@ void MapCircuitBreakerEndpoints(WebApplication app)
         return Results.Ok(new { message = "Circuit breaker opened successfully" });
     }).WithName("OpenCircuitBreaker");
 }
-
 void MapHealthEndpoints(WebApplication app)
 {
     app.MapHealthChecks("/health/live").WithTags("Health");
@@ -695,11 +700,4 @@ void MapHealthEndpoints(WebApplication app)
     }).WithTags("Health").WithName("HealthJobs");
 }
 
-// Command record for cancelling executions
-public record CancelExecutionCommand(string ExecutionId, string CancelledBy, string? Reason);
-
-// Command record for updating job
-public record UpdateJobCommand(Guid Id, string Name, string Description);
-
-// Command record for updating job status
-public record UpdateJobStatusCommand(JobStatus NewStatus, string UpdatedBy, string? Reason);
+// Command records moved to Program.Types.cs

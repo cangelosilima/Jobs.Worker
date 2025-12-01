@@ -1,0 +1,284 @@
+name: Auto Issue Management for CI Failures
+
+on:
+  workflow_run:
+    workflows:
+      - "Push Validation (Bots & AI Only)"
+      - "Pull Request Validation"
+      - "CI - Main Branch"
+    types:
+      - completed
+
+  pull_request:
+    types:
+      - closed
+
+  delete:
+    branches:
+      - '**'
+
+permissions:
+  issues: write
+  contents: read
+  actions: read
+  pull-requests: read
+
+jobs:
+  handle-workflow-completion:
+    name: Handle CI Workflow Completion
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_run'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Handle Failure - Create or Update Issue
+        if: github.event.workflow_run.conclusion == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const workflowName = '${{ github.event.workflow_run.name }}';
+            const runId = '${{ github.event.workflow_run.id }}';
+            const runNumber = '${{ github.event.workflow_run.run_number }}';
+            const branch = '${{ github.event.workflow_run.head_branch }}';
+            const sha = '${{ github.event.workflow_run.head_sha }}';
+            const actor = '${{ github.event.workflow_run.actor.login }}';
+            const runUrl = '${{ github.event.workflow_run.html_url }}';
+            const triggeredBy = '${{ github.event.workflow_run.triggering_actor.login }}';
+
+            // Label to identify auto-generated CI failure issues
+            const issueLabel = 'ci-failure';
+            const branchLabel = `branch:${branch}`;
+
+            // Check if issue already exists for this branch and workflow
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: [issueLabel, branchLabel],
+              state: 'open'
+            });
+
+            const workflowIssues = existingIssues.data.filter(issue =>
+              issue.title.includes(workflowName)
+            );
+
+            const issueBody = `## 🔴 CI Failure Detected
+
+            **Workflow:** ${workflowName}
+            **Branch:** \`${branch}\`
+            **Commit:** \`${sha.substring(0, 7)}\`
+            **Triggered by:** @${triggeredBy}
+            **Run:** [#${runNumber}](${runUrl})
+
+            ### Failure Details
+
+            The CI workflow failed on this branch. Please review the logs and fix the issues.
+
+            **Actions to take:**
+            1. 📋 Review the [workflow run logs](${runUrl})
+            2. 🔍 Identify the failing tests or build errors
+            3. 🛠️ Fix the issues locally
+            4. ✅ Push the fixes to trigger a new CI run
+
+            ---
+
+            This issue will be **automatically closed** when:
+            - ✅ A new successful CI run completes on this branch
+            - 🗑️ The branch or pull request is deleted
+
+            **Last failure:** ${new Date().toISOString()}
+            `;
+
+            if (workflowIssues.length > 0) {
+              // Update existing issue
+              const issue = workflowIssues[0];
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `### 🔴 Failure Still Occurring\n\n` +
+                      `**New failure detected:** [Run #${runNumber}](${runUrl})\n` +
+                      `**Commit:** \`${sha.substring(0, 7)}\`\n` +
+                      `**Time:** ${new Date().toISOString()}\n\n` +
+                      `The CI is still failing. Please review the latest logs.`
+              });
+
+              console.log(`Updated existing issue #${issue.number}`);
+            } else {
+              // Create new issue
+              const newIssue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🔴 CI Failure: ${workflowName} on ${branch}`,
+                body: issueBody,
+                labels: [issueLabel, branchLabel, 'bug', 'automated']
+              });
+
+              console.log(`Created new issue #${newIssue.data.number}`);
+            }
+
+      - name: Handle Success - Close Related Issues
+        if: github.event.workflow_run.conclusion == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const workflowName = '${{ github.event.workflow_run.name }}';
+            const runId = '${{ github.event.workflow_run.id }}';
+            const runNumber = '${{ github.event.workflow_run.run_number }}';
+            const branch = '${{ github.event.workflow_run.head_branch }}';
+            const sha = '${{ github.event.workflow_run.head_sha }}';
+            const runUrl = '${{ github.event.workflow_run.html_url }}';
+
+            const issueLabel = 'ci-failure';
+            const branchLabel = `branch:${branch}`;
+
+            // Find open issues for this branch and workflow
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: [issueLabel, branchLabel],
+              state: 'open'
+            });
+
+            const workflowIssues = existingIssues.data.filter(issue =>
+              issue.title.includes(workflowName)
+            );
+
+            for (const issue of workflowIssues) {
+              // Add success comment with issue reference
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `### ✅ CI Fixed - Build Successful!\n\n` +
+                      `**Successful run:** [#${runNumber}](${runUrl})\n` +
+                      `**Commit:** \`${sha.substring(0, 7)}\`\n` +
+                      `**Time:** ${new Date().toISOString()}\n\n` +
+                      `The CI workflow is now passing. Great work! 🎉\n\n` +
+                      `**Issue Reference:** Closes #${issue.number}\n\n` +
+                      `---\n` +
+                      `*This issue was automatically resolved by a successful CI build.*`
+              });
+
+              // Close the issue
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed',
+                state_reason: 'completed'
+              });
+
+              console.log(`✅ Closed issue #${issue.number} - CI fixed!`);
+            }
+
+            // Also add a comment to the workflow run summary (via commit status)
+            if (workflowIssues.length > 0) {
+              const issueNumbers = workflowIssues.map(i => `#${i.number}`).join(', ');
+              console.log(`::notice::Fixed CI failures - Closed issues: ${issueNumbers}`);
+            }
+
+  handle-pr-closure:
+    name: Close Issues on PR Deletion
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+
+    steps:
+      - name: Close CI Issues for Closed PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.payload.pull_request.head.ref;
+            const prNumber = context.payload.pull_request.number;
+            const merged = context.payload.pull_request.merged;
+
+            const issueLabel = 'ci-failure';
+            const branchLabel = `branch:${branch}`;
+
+            // Find all open CI issues for this branch
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: [issueLabel, branchLabel],
+              state: 'open'
+            });
+
+            const action = merged ? 'merged' : 'closed';
+
+            for (const issue of existingIssues.data) {
+              // Add closure comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `### 🗑️ PR ${action.toUpperCase()} - Auto-closing\n\n` +
+                      `**Pull Request:** #${prNumber} was ${action}\n` +
+                      `**Branch:** \`${branch}\`\n` +
+                      `**Time:** ${new Date().toISOString()}\n\n` +
+                      `This CI failure issue is being closed because the associated pull request was ${action}.\n\n` +
+                      `---\n` +
+                      `*This issue was automatically closed due to PR ${action}.*`
+              });
+
+              // Close the issue
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed',
+                state_reason: 'not_planned'
+              });
+
+              console.log(`🗑️ Closed issue #${issue.number} - PR ${action}`);
+            }
+
+  handle-branch-deletion:
+    name: Close Issues on Branch Deletion
+    runs-on: ubuntu-latest
+    if: github.event_name == 'delete' && github.event.ref_type == 'branch'
+
+    steps:
+      - name: Close CI Issues for Deleted Branch
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.payload.ref;
+
+            const issueLabel = 'ci-failure';
+            const branchLabel = `branch:${branch}`;
+
+            // Find all open CI issues for this branch
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: [issueLabel, branchLabel],
+              state: 'open'
+            });
+
+            for (const issue of existingIssues.data) {
+              // Add closure comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `### 🗑️ Branch Deleted - Auto-closing\n\n` +
+                      `**Branch:** \`${branch}\` was deleted\n` +
+                      `**Time:** ${new Date().toISOString()}\n\n` +
+                      `This CI failure issue is being closed because the associated branch was deleted.\n\n` +
+                      `---\n` +
+                      `*This issue was automatically closed due to branch deletion.*`
+              });
+
+              // Close the issue
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed',
+                state_reason: 'not_planned'
+              });
+
+              console.log(`🗑️ Closed issue #${issue.number} - Branch deleted`);
+            }

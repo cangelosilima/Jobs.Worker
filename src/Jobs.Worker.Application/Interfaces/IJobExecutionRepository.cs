@@ -6,6 +6,7 @@ namespace Jobs.Worker.Application.Interfaces;
 public interface IJobExecutionRepository
 {
     Task<JobExecution?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IEnumerable<JobExecution>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<JobExecution>> GetByJobIdAsync(Guid jobId, int pageSize = 50, CancellationToken cancellationToken = default);
     Task<IEnumerable<JobExecution>> GetRunningExecutionsAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<JobExecution>> GetFailedExecutionsTodayAsync(CancellationToken cancellationToken = default);

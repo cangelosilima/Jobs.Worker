@@ -270,7 +270,7 @@ const ScheduleCreate = () => {
                     Recurrence Type
                   </Typography>
                   <Typography>
-                    {RecurrenceType[formData.recurrenceType as keyof typeof RecurrenceType]}
+                    {RecurrenceType[formData.recurrenceType as unknown as keyof typeof RecurrenceType]}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} md={6}>

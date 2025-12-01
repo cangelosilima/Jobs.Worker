@@ -74,7 +74,7 @@ const AuditLogs = () => {
       field: 'timestamp',
       headerName: 'Timestamp',
       width: 200,
-      valueFormatter: (value) => dayjs(value).format('MMM DD, YYYY HH:mm:ss'),
+      valueFormatter: (params) => dayjs(params.value).format('MMM DD, YYYY HH:mm:ss'),
     },
     {
       field: 'userName',

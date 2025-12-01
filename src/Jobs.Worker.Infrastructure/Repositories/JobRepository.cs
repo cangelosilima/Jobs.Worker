@@ -8,6 +8,11 @@ namespace Jobs.Worker.Infrastructure.Repositories;
 
 public class JobRepository : IJobRepository
 {
+    public async Task AddOwnershipAsync(JobOwnership ownership, CancellationToken cancellationToken = default)
+    {
+        await _context.JobOwnerships.AddAsync(ownership, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
     private readonly JobSchedulerDbContext _context;
 
     public JobRepository(JobSchedulerDbContext context)

@@ -57,7 +57,7 @@ public class SignalRNotificationService : BackgroundService
             var activeJobs = allJobs.Count(j => j.Status == Domain.Enums.JobStatus.Active);
             var succeededToday = allJobs.Sum(j => j.Executions.Count(e =>
                 e.Status == Domain.Enums.ExecutionStatus.Succeeded &&
-                e.ScheduledTimeUtc.Date == DateTime.UtcNow.Date));
+                e.QueuedAtUtc.Date == DateTime.UtcNow.Date));
 
             var totalToday = succeededToday + failedToday.Count();
             var successRate = totalToday > 0 ? (double)succeededToday / totalToday * 100 : 0;

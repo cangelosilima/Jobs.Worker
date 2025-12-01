@@ -9,7 +9,6 @@ import {
   Chip,
   CircularProgress,
   Alert,
-  Divider,
 } from '@mui/material';
 import { jobsApi } from '@/api/jobs.api';
 import { JobStatus } from '@/api/types';

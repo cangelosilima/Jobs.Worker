@@ -1,0 +1,156 @@
+name: Push Validation (Bots & AI Only)
+
+on:
+  push:
+    branches:
+      - '**'  # Triggers on all branches
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/**.md'
+
+jobs:
+  check-if-bot:
+    name: Check if pusher is Bot/AI
+    runs-on: ubuntu-latest
+    outputs:
+      is_bot: ${{ steps.check.outputs.is_bot }}
+    steps:
+      - name: Check if bot or AI based on authentication
+        id: check
+        run: |
+          echo "============================================"
+          echo "Checking authentication type..."
+          echo "============================================"
+          echo "Actor: ${{ github.actor }}"
+          echo "Pusher Type: ${{ github.event.pusher.type }}"
+          echo "Event Name: ${{ github.event_name }}"
+          echo "============================================"
+
+          # Method 1: Check GitHub's native pusher type (most reliable)
+          # GitHub Apps and bots have pusher.type = "Bot"
+          if [[ "${{ github.event.pusher.type }}" == "Bot" ]]; then
+            echo "is_bot=true" >> $GITHUB_OUTPUT
+            echo "✅ Detected: GitHub App/Bot (via pusher.type)"
+            exit 0
+          fi
+
+          # Method 2: Check if actor ends with [bot] (GitHub's bot naming convention)
+          if [[ "${{ github.actor }}" == *"[bot]" ]]; then
+            echo "is_bot=true" >> $GITHUB_OUTPUT
+            echo "✅ Detected: GitHub Bot (via [bot] suffix)"
+            exit 0
+          fi
+
+          # Method 3: Check commit author email for bot patterns
+          # Bots typically use specific email patterns
+          author_email="${{ github.event.head_commit.author.email }}"
+          if [[ "$author_email" == *"@users.noreply.github.com" ]] && \
+             [[ "$author_email" == *"[bot]@"* ]]; then
+            echo "is_bot=true" >> $GITHUB_OUTPUT
+            echo "✅ Detected: Bot (via commit author email pattern)"
+            exit 0
+          fi
+
+          # Method 4: Check if using GitHub Actions GITHUB_TOKEN
+          # Actions using GITHUB_TOKEN appear as github-actions
+          if [[ "${{ github.actor }}" == "github-actions" ]]; then
+            echo "is_bot=true" >> $GITHUB_OUTPUT
+            echo "✅ Detected: GitHub Actions automation"
+            exit 0
+          fi
+
+          # Default: Human user (authenticated via OAuth, PAT, SSH key)
+          echo "is_bot=false" >> $GITHUB_OUTPUT
+          echo "⏭️  Human developer detected (via user authentication)"
+          echo "   Authentication: OAuth/PAT/SSH (not bot/app token)"
+          echo "   Skipping push validation - will validate on PR"
+
+  quick-validation:
+    name: Quick Build & Test Validation
+    runs-on: ubuntu-latest
+    needs: check-if-bot
+    if: needs.check-if-bot.outputs.is_bot == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Backend validation
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore .NET dependencies
+        run: dotnet restore
+
+      - name: Build .NET solution
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run all .NET tests
+        run: dotnet test --configuration Release --no-build --verbosity minimal --no-restore
+
+      # Frontend validation
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          CI: true
+
+      - name: Run frontend tests
+        working-directory: ./frontend
+        run: npm test -- --run
+
+      - name: Validation Summary
+        if: always()
+        run: |
+          echo "=================================================="
+          echo "🤖 Bot/AI Push Validation Complete"
+          echo "=================================================="
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Bot/AI: ${{ github.actor }}"
+          echo "=================================================="
+          if [ $? -eq 0 ]; then
+            echo "✅ All validations passed!"
+          else
+            echo "❌ Validation failed - please fix before pushing again"
+            exit 1
+          fi
+
+  block-if-failed:
+    name: Block Bot/AI Push If Validation Fails
+    runs-on: ubuntu-latest
+    needs: [check-if-bot, quick-validation]
+    if: always() && needs.check-if-bot.outputs.is_bot == 'true' && needs.quick-validation.result == 'failure'
+
+    steps:
+      - name: Bot/AI Validation Failed - Block
+        run: |
+          echo "❌ BOT/AI PUSH VALIDATION FAILED ❌"
+          echo ""
+          echo "This push by ${{ github.actor }} contains code that does not pass validation:"
+          echo "- Backend build or tests failed, OR"
+          echo "- Frontend build or tests failed"
+          echo ""
+          echo "🤖 Bot/AI pushes must pass all tests before being accepted."
+          echo ""
+          echo "The bot/AI should:"
+          echo "1. Review the test failure logs above"
+          echo "2. Fix the failing tests"
+          echo "3. Push again with corrected code"
+          echo ""
+          echo "To test locally before pushing:"
+          echo "  Backend: dotnet build && dotnet test"
+          echo "  Frontend: cd frontend && npm ci && npm test && npm run build"
+          exit 1

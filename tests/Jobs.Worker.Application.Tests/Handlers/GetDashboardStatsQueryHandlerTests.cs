@@ -5,6 +5,7 @@ using Jobs.Worker.Application.Queries;
 using Jobs.Worker.Domain.Entities;
 using Jobs.Worker.Domain.Enums;
 using Moq;
+using Xunit;
 
 namespace Jobs.Worker.Application.Tests.Handlers;
 
@@ -25,10 +26,10 @@ public class GetDashboardStatsQueryHandlerTests
     public async Task HandleAsync_ShouldReturnCorrectStats_WhenJobsExist()
     {
         // Arrange
-        var activeJob = new JobDefinition("Job1", "Desc", "Asm", "Class", "Method", "user");
+        var activeJob = new JobDefinition("Job1", "Desc", "Category", DeploymentEnvironment.All, ExecutionMode.InProcess, "Asm.dll", "Namespace.Type", 600, "user");
         activeJob.Activate("admin");
 
-        var disabledJob = new JobDefinition("Job2", "Desc", "Asm", "Class", "Method", "user");
+        var disabledJob = new JobDefinition("Job2", "Desc", "Category", DeploymentEnvironment.All, ExecutionMode.InProcess, "Asm.dll", "Namespace.Type", 600, "user");
         disabledJob.Activate("admin");
         disabledJob.Disable("admin", "test");
 
@@ -71,7 +72,7 @@ public class GetDashboardStatsQueryHandlerTests
     public async Task HandleAsync_ShouldCalculateSuccessRate_Correctly()
     {
         // Arrange
-        var job = new JobDefinition("Job1", "Desc", "Asm", "Class", "Method", "user");
+        var job = new JobDefinition("Job1", "Desc", "Category", DeploymentEnvironment.All, ExecutionMode.InProcess, "Asm.dll", "Namespace.Type", 600, "user");
 
         _jobRepoMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<JobDefinition> { job });
@@ -100,7 +101,8 @@ public class GetDashboardStatsQueryHandlerTests
     private JobExecution CreateExecution(Guid jobId, ExecutionStatus status)
     {
         var scheduleId = Guid.NewGuid();
-        var execution = new JobExecution(jobId, scheduleId, DateTime.UtcNow, false, null);
+        var context = Jobs.Worker.Domain.ValueObjects.ExecutionContext.Create("test-host");
+        var execution = new JobExecution(jobId, scheduleId, context, null, "test-user", false, 3);
 
         if (status == ExecutionStatus.Running)
         {

@@ -1,0 +1,198 @@
+name: Pull Request Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    types: [opened, synchronize, reopened]
+
+jobs:
+  backend-build-and-test:
+    name: Backend Build & Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build solution
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run Domain Tests
+        run: dotnet test tests/Jobs.Worker.Domain.Tests/Jobs.Worker.Domain.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=domain-test-results.trx"
+
+      - name: Run Application Tests
+        run: dotnet test tests/Jobs.Worker.Application.Tests/Jobs.Worker.Application.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=application-test-results.trx"
+
+      - name: Run API Tests
+        run: dotnet test tests/Jobs.Worker.Api.Tests/Jobs.Worker.Api.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=api-test-results.trx"
+
+      - name: Run Architecture Tests
+        run: dotnet test tests/Jobs.Worker.ArchitectureTests/Jobs.Worker.ArchitectureTests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=architecture-test-results.trx"
+
+      - name: Publish Test Results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Backend Test Results
+          path: '**/TestResults/*.trx'
+          reporter: dotnet-trx
+          fail-on-error: true
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: '**/TestResults/*.trx'
+          retention-days: 30
+
+  frontend-build-and-test:
+    name: Frontend Build & Test
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint --if-present
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          CI: true
+
+      - name: Run unit tests
+        run: npm test -- --run --reporter=verbose
+
+      - name: Run tests with coverage
+        run: npm run test:coverage --if-present
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./frontend/coverage/coverage-final.json
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist
+          retention-days: 7
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Check code formatting
+        run: dotnet format --verify-no-changes --verbosity diagnostic
+
+      # Security scan - uncomment when ready to use
+      # - name: Run security scan
+      #   uses: security-code-scan/security-code-scan-action@v2
+      #   if: always()
+
+  pr-validation-summary:
+    name: PR Validation Summary
+    runs-on: ubuntu-latest
+    needs: [backend-build-and-test, frontend-build-and-test, code-quality]
+    if: always()
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Check all jobs status
+        run: |
+          echo "Backend Build & Test: ${{ needs.backend-build-and-test.result }}"
+          echo "Frontend Build & Test: ${{ needs.frontend-build-and-test.result }}"
+          echo "Code Quality: ${{ needs.code-quality.result }}"
+
+          if [ "${{ needs.backend-build-and-test.result }}" != "success" ] || \
+             [ "${{ needs.frontend-build-and-test.result }}" != "success" ] || \
+             [ "${{ needs.code-quality.result }}" != "success" ]; then
+            echo "❌ PR validation failed!"
+            exit 1
+          fi
+
+          echo "✅ All checks passed! PR is ready for review."
+
+      - name: Comment PR
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const backendStatus = '${{ needs.backend-build-and-test.result }}';
+            const frontendStatus = '${{ needs.frontend-build-and-test.result }}';
+            const qualityStatus = '${{ needs.code-quality.result }}';
+
+            const statusEmoji = (status) => status === 'success' ? '✅' : '❌';
+
+            const comment = `## PR Validation Results
+
+            | Check | Status |
+            |-------|--------|
+            | Backend Build & Test | ${statusEmoji(backendStatus)} ${backendStatus} |
+            | Frontend Build & Test | ${statusEmoji(frontendStatus)} ${frontendStatus} |
+            | Code Quality | ${statusEmoji(qualityStatus)} ${qualityStatus} |
+
+            ${backendStatus === 'success' && frontendStatus === 'success' && qualityStatus === 'success'
+              ? '✅ **All checks passed!** This PR is ready for review.'
+              : '❌ **Some checks failed.** Please fix the issues before merging.'}
+
+            ---
+            <sub>Automated PR validation by GitHub Actions</sub>`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
