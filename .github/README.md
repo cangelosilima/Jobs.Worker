@@ -1,3 +1,7 @@
+![PR Validation](https://github.com/cangelosilima/Jobs.Worker/workflows/Pull%20Request%20Validation/badge.svg)
+![CI Main](https://github.com/cangelosilima/Jobs.Worker/workflows/CI%20-%20Main%20Branch/badge.svg)
+[![codecov](https://codecov.io/gh/cangelosilima/Jobs.Worker/branch/main/graph/badge.svg)](https://codecov.io/gh/cangelosilima/Jobs.Worker)
+
 # GitHub Workflows & CI/CD
 
 This directory contains GitHub Actions workflows and repository configuration for the Jobs.Worker project.
