@@ -46,7 +46,7 @@ jobs:
         run: dotnet test tests/Jobs.Worker.ArchitectureTests/Jobs.Worker.ArchitectureTests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=architecture-test-results.trx"
 
       - name: Publish Test Results
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2
         if: always()
         with:
           name: Backend Test Results
