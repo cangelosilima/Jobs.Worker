@@ -63,7 +63,7 @@ public class CreateJobCommandHandler
         // Create ownership (prefer Owner object if provided)
         var ownerName = !string.IsNullOrEmpty(request.OwnerName) ? request.OwnerName : request.Owner?.UserName ?? string.Empty;
         var ownerEmail = !string.IsNullOrEmpty(request.OwnerEmail) ? request.OwnerEmail : request.Owner?.Email ?? string.Empty;
-        
+
         // Only create ownership if we have at least a name
         if (!string.IsNullOrEmpty(ownerName) || !string.IsNullOrEmpty(ownerEmail))
         {
