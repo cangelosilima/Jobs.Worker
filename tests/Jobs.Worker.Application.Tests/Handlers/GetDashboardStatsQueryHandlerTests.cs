@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Jobs.Worker.Application.Handlers;
 using Jobs.Worker.Application.Interfaces;

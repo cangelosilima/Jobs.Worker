@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Jobs.Worker.Domain.Enums;
 
 namespace Jobs.Worker.Domain.ValueObjects;

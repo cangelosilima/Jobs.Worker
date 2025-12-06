@@ -1,8 +1,15 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Jobs.Worker.Api.Hubs;
 using Jobs.Worker.Application.Interfaces;
 using Jobs.Worker.Domain.Entities;
 using Jobs.Worker.Domain.Enums;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Jobs.Worker.Api.Services;
 

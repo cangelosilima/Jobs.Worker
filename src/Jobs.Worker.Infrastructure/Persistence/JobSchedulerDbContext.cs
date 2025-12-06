@@ -1,7 +1,8 @@
+using System.Collections.Generic;
+using System.Text.Json;
 using Jobs.Worker.Domain.Entities;
 using Jobs.Worker.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 namespace Jobs.Worker.Infrastructure.Persistence;
 

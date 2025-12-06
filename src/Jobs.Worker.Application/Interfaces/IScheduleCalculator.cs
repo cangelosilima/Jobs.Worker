@@ -1,3 +1,4 @@
+using System;
 using Jobs.Worker.Domain.Entities;
 
 namespace Jobs.Worker.Application.Interfaces;

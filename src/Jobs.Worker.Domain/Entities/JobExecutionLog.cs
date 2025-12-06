@@ -1,3 +1,5 @@
+using System;
+
 namespace Jobs.Worker.Domain.Entities;
 
 public class JobExecutionLog

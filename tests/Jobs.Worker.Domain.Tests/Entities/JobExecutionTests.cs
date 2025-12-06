@@ -1,9 +1,10 @@
-using System.Threading;
+using System;
 using FluentAssertions;
 using Jobs.Worker.Domain.Entities;
 using Jobs.Worker.Domain.Enums;
 using Jobs.Worker.Domain.ValueObjects;
 using Xunit;
+using Threading = System.Threading;
 
 namespace Jobs.Worker.Domain.Tests.Entities;
 
@@ -58,7 +59,7 @@ public class JobExecutionTests
         // Arrange
         var execution = CreateExecution();
         execution.Start();
-        Thread.Sleep(100); // Small delay to ensure duration > 0
+        Threading.Thread.Sleep(100); // Small delay to ensure duration > 0
 
         // Act
         execution.Complete("output data");

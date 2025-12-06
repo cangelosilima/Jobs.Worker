@@ -1,3 +1,4 @@
+using System;
 using Jobs.Worker.Domain.ValueObjects;
 
 namespace Jobs.Worker.Domain.Entities;

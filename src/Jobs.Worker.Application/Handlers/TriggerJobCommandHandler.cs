@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Jobs.Worker.Application.Commands;
 using Jobs.Worker.Application.Interfaces;
 using Jobs.Worker.Domain.Entities;

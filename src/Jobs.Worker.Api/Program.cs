@@ -1,19 +1,25 @@
-using Jobs.Worker.Api;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Jobs.Worker.Api.Hubs;
 using Jobs.Worker.Api.Services;
 using Jobs.Worker.Application.Commands;
 using Jobs.Worker.Application.Handlers;
 using Jobs.Worker.Application.Interfaces;
 using Jobs.Worker.Application.Queries;
-using Jobs.Worker.Application.Responses;
-using Jobs.Worker.Domain;
 using Jobs.Worker.Domain.Entities;
 using Jobs.Worker.Domain.Enums;
 using Jobs.Worker.Infrastructure.Persistence;
 using Jobs.Worker.Infrastructure.Repositories;
 using Jobs.Worker.Infrastructure.Services;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -699,5 +705,3 @@ void MapHealthEndpoints(WebApplication app)
         });
     }).WithTags("Health").WithName("HealthJobs");
 }
-
-// Command records moved to Program.Types.cs

@@ -1,3 +1,4 @@
+using System;
 using FluentAssertions;
 using Jobs.Worker.Domain.ValueObjects;
 using Xunit;

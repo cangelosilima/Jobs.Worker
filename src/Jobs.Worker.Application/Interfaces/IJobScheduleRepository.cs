@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Jobs.Worker.Domain.Entities;
 
 namespace Jobs.Worker.Application.Interfaces;
