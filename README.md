@@ -1,5 +1,11 @@
 # Job Scheduler Worker
 
+[![Build Status](https://github.com/cangelosilima/Jobs.Worker/actions/workflows/ci.yml/badge.svg)](https://github.com/cangelosilima/Jobs.Worker/actions)
+[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
+[![Code Quality](https://img.shields.io/badge/Code%20Quality-Clean%20Architecture-brightgreen.svg)](https://github.com/cangelosilima/Jobs.Worker)
+[![Tests](https://img.shields.io/badge/Tests-Passing-success.svg)](https://github.com/cangelosilima/Jobs.Worker/actions)
+
 Enterprise-grade Job Scheduling and Execution Platform built with .NET 8
 
 ## Overview
@@ -75,6 +81,58 @@ A highly-reliable, auditable, and enterprise-ready job scheduling and execution 
 - **Jobs.Worker.Infrastructure**: Data access, external services
 - **Jobs.Worker.Api**: REST API endpoints
 - **Jobs.Worker.Worker**: Background worker service
+
+## Testing
+
+### Test Coverage
+
+The solution includes comprehensive test suites to ensure code quality and reliability:
+
+#### Unit Tests
+- **Jobs.Worker.Domain.Tests**: 40+ tests covering entities and value objects
+  - `JobDefinitionTests`: Job lifecycle, status transitions, policy configuration
+  - `JobExecutionTests`: Execution states, retry logic, completion tracking
+  - `RetryPolicyTests`: Delay calculations, validation, factory methods
+  - `CircuitBreakerPolicyTests`: Policy validation, preset configurations
+
+- **Jobs.Worker.Application.Tests**: 6+ tests covering handlers and business logic
+  - `CreateJobCommandHandlerTests`: Job creation, validation, audit logging
+  - `GetDashboardStatsQueryHandlerTests`: Statistics aggregation, metrics calculation
+
+#### Integration Tests
+- **Jobs.Worker.Api.Tests**: 4+ API endpoint integration tests
+  - Health checks, job creation, CRUD operations
+  - In-memory database testing with WebApplicationFactory
+
+#### Architecture Tests
+- **Jobs.Worker.ArchitectureTests**: 11+ architecture compliance tests
+  - Clean Architecture layer dependency rules
+  - Naming conventions and structure validation
+  - Domain model immutability checks
+
+### Running Tests
+
+```bash
+# Run all tests
+dotnet test
+
+# Run with coverage
+dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+
+# Run specific test project
+dotnet test tests/Jobs.Worker.Domain.Tests
+
+# Run tests in parallel
+dotnet test --parallel
+```
+
+### Test Principles
+
+- **Arrange-Act-Assert (AAA)**: All tests follow AAA pattern
+- **Isolated**: Tests don't depend on external services
+- **Fast**: Unit tests run in milliseconds
+- **Deterministic**: No flaky tests, consistent results
+- **Maintainable**: Clear naming, focused scope
 
 ## Prerequisites
 
