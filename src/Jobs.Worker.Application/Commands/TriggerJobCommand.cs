@@ -1,3 +1,5 @@
+using System;
+
 namespace Jobs.Worker.Application.Commands;
 
 public record TriggerJobCommand

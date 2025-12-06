@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Jobs.Worker.Domain.Enums;
 using Jobs.Worker.Domain.ValueObjects;
 

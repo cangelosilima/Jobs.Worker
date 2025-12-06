@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Jobs.Worker.Application.Interfaces;
 using Jobs.Worker.Domain.Entities;
 using Jobs.Worker.Domain.Enums;

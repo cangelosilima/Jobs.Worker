@@ -1,3 +1,5 @@
+using System;
+
 namespace Jobs.Worker.Domain.ValueObjects;
 
 public class JobHealthScore

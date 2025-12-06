@@ -4,6 +4,9 @@ using Jobs.Worker.Infrastructure.Repositories;
 using Jobs.Worker.Infrastructure.Services;
 using Jobs.Worker.Worker;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Serilog;
 
 var builder = Host.CreateApplicationBuilder(args);

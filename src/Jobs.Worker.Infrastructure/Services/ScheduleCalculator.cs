@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Cronos;
 using Jobs.Worker.Application.Interfaces;
 using Jobs.Worker.Domain.Entities;

@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace Jobs.Worker.Domain.ValueObjects;
 
 public class ExecutionContext

@@ -2,13 +2,15 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using Jobs.Worker.Application.Commands;
-using Jobs.Worker.Domain.Enums;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Jobs.Worker.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
-using Program = Jobs.Worker.Api.Program;
+using System.Threading.Tasks;
+using System.Linq;
+using System.Net.Http;
+using System;
 
 namespace Jobs.Worker.Api.Tests.Integration;
 
