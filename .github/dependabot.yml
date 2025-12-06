@@ -4,9 +4,9 @@ updates:
   - package-ecosystem: "nuget"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 10
+      interval: "monthly"
+      day: "1"
+    open-pull-requests-limit: 1
     reviewers:
       - "cangelosilima"
     labels:
@@ -20,9 +20,9 @@ updates:
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 10
+      interval: "monthly"
+      day: "1"
+    open-pull-requests-limit: 1
     reviewers:
       - "cangelosilima"
     labels:
@@ -42,8 +42,8 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
+      day: "1"
     reviewers:
       - "cangelosilima"
     labels:

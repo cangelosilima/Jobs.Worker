@@ -14,8 +14,6 @@ on:
       - closed
 
   delete:
-    branches:
-      - '**'
 
 permissions:
   issues: write
