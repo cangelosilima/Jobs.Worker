@@ -27,12 +27,15 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore .NET dependencies
+        working-directory: ./backend
         run: dotnet restore
 
       - name: Build .NET solution
+        working-directory: ./backend
         run: dotnet build --configuration Release --no-restore
 
       - name: Run all .NET tests
+        working-directory: ./backend 
         run: dotnet test --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
 
       - name: Upload .NET coverage
