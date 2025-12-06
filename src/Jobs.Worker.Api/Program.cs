@@ -448,8 +448,8 @@ void MapDashboardEndpoints(WebApplication app)
                 jobId = j.Id.ToString(),
                 jobName = j.Name,
                 lastExecutionTime = j.Schedules.Any() ? j.Schedules.Max(s => s.LastExecutionUtc) : null,
-                daysSinceLastExecution = j.Schedules.Any() && j.Schedules.Max(s => s.LastExecutionUtc).HasValue
-                    ? (DateTime.UtcNow - j.Schedules.Max(s => s.LastExecutionUtc).Value).Days
+                daysSinceLastExecution = j.Schedules.Any() && j.Schedules.Max(s => s.LastExecutionUtc) is DateTime lastExec
+                    ? (DateTime.UtcNow - lastExec).Days
                     : 999,
                 isActive = j.Status == JobStatus.Active
             })
