@@ -1,0 +1,284 @@
+name: SDK Publish - Manual Trigger
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.0 or 1.0.0-beta.1)'
+        required: true
+        type: string
+      publish_nuget:
+        description: 'Publish to NuGet.org'
+        required: true
+        type: boolean
+        default: true
+      publish_npm:
+        description: 'Publish to npm registry'
+        required: true
+        type: boolean
+        default: true
+      create_release:
+        description: 'Create GitHub release'
+        required: true
+        type: boolean
+        default: true
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  DOTNET_FRAMEWORK_VERSION: '6.0.x'
+  NODE_VERSION: '20.x'
+  NSWAG_VERSION: '14.0.3'
+  SDK_PATH: 'Jobs.Worker.Client'
+
+jobs:
+  validate-version:
+    name: Validate Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+    steps:
+      - name: Validate version format
+        id: validate
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9\.]+)?$ ]]; then
+            echo "❌ Invalid version format: $VERSION"
+            echo "Expected format: X.Y.Z or X.Y.Z-prerelease"
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "✅ Version format is valid: $VERSION"
+
+  generate-clients:
+    name: Generate API Clients
+    runs-on: ubuntu-latest
+    needs: validate-version
+    env:
+      VERSION: ${{ needs.validate-version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup .NET 6
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_FRAMEWORK_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install NSwag CLI
+        run: dotnet tool install -g NSwag.ConsoleCore --version ${{ env.NSWAG_VERSION }}
+
+      - name: Start API
+        run: |
+          cd backend/src/Jobs.Worker.Api
+          dotnet run --urls="https://localhost:5001" &
+          API_PID=$!
+          echo "API_PID=$API_PID" >> $GITHUB_ENV
+
+          for i in {1..30}; do
+            if curl -k -s -f -o /dev/null https://localhost:5001/health; then
+              echo "✅ API is ready"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Generate clients
+        working-directory: ${{ env.SDK_PATH }}
+        run: |
+          nswag run nswag-dotnet.json
+          nswag run nswag-net48.json
+          nswag run nswag-typescript.json
+
+      - name: Stop API
+        if: always()
+        run: kill $API_PID || true
+
+      - name: Upload SDK
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-with-generated-clients
+          path: ${{ env.SDK_PATH }}
+
+  build-dotnet:
+    name: Build .NET Packages
+    runs-on: ubuntu-latest
+    needs: [validate-version, generate-clients]
+    env:
+      VERSION: ${{ needs.validate-version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download SDK
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-with-generated-clients
+          path: ${{ env.SDK_PATH }}
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Build and pack .NET 8
+        working-directory: ${{ env.SDK_PATH }}
+        run: |
+          dotnet restore Jobs.Worker.Client.csproj
+          dotnet build Jobs.Worker.Client.csproj --configuration Release -p:Version=${{ env.VERSION }}
+          dotnet pack Jobs.Worker.Client.csproj --configuration Release --no-build --output ./nupkg -p:PackageVersion=${{ env.VERSION }}
+
+      - name: Build and pack .NET Framework 4.8
+        working-directory: ${{ env.SDK_PATH }}/Jobs.Worker.Client.Net48
+        run: |
+          dotnet restore Jobs.Worker.Client.Net48.csproj
+          dotnet build Jobs.Worker.Client.Net48.csproj --configuration Release -p:Version=${{ env.VERSION }}
+          dotnet pack Jobs.Worker.Client.Net48.csproj --configuration Release --no-build --output ../nupkg -p:PackageVersion=${{ env.VERSION }}
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: ${{ env.SDK_PATH }}/nupkg/*.nupkg
+
+  publish-nuget:
+    name: Publish to NuGet
+    runs-on: ubuntu-latest
+    needs: [validate-version, build-dotnet]
+    if: ${{ github.event.inputs.publish_nuget == 'true' }}
+    environment: production
+    env:
+      VERSION: ${{ needs.validate-version.outputs.version }}
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: ./packages
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish to NuGet
+        run: |
+          dotnet nuget push ./packages/Jobs.Worker.Client.${{ env.VERSION }}.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+          dotnet nuget push ./packages/Jobs.Worker.Client.Net48.${{ env.VERSION }}.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+  build-npm:
+    name: Build npm Package
+    runs-on: ubuntu-latest
+    needs: [validate-version, generate-clients]
+    env:
+      VERSION: ${{ needs.validate-version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download SDK
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-with-generated-clients
+          path: ${{ env.SDK_PATH }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Build and pack
+        working-directory: ${{ env.SDK_PATH }}
+        run: |
+          npm ci
+          npm version ${{ env.VERSION }} --no-git-tag-version --allow-same-version
+          npm run build
+          npm pack
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: ${{ env.SDK_PATH }}/*.tgz
+
+  publish-npm:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    needs: [validate-version, build-npm]
+    if: ${{ github.event.inputs.publish_npm == 'true' }}
+    environment: production
+    env:
+      VERSION: ${{ needs.validate-version.outputs.version }}
+    steps:
+      - name: Download package
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+          path: ./package
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish to npm
+        run: npm publish ./package/*.tgz --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate-version, publish-nuget, publish-npm]
+    if: ${{ github.event.inputs.create_release == 'true' && (success() || needs.publish-nuget.result == 'skipped' || needs.publish-npm.result == 'skipped') }}
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.validate-version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: SDK Release ${{ env.VERSION }} (Manual)
+          body: |
+            Manual release of Jobs.Worker Client SDK version ${{ env.VERSION }}
+
+            ## Published Packages
+            - Jobs.Worker.Client: ${{ env.VERSION }}
+            - Jobs.Worker.Client.Net48: ${{ env.VERSION }}
+            - @jobs-worker/client: ${{ env.VERSION }}
+
+            Published via manual workflow trigger.
+          draft: false
+          prerelease: ${{ contains(env.VERSION, '-') }}
+          files: |
+            artifacts/nuget-packages/*.nupkg
+            artifacts/npm-package/*.tgz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
