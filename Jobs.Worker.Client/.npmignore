@@ -1,0 +1,23 @@
+# Source files
+src/
+
+# Config files
+tsconfig.json
+nswag-typescript.json
+*.json
+!package.json
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Docs
+README.md
+
+# Build artifacts
+*.log
+node_modules/

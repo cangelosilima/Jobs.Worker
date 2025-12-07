@@ -1,0 +1,33 @@
+## Ignore build outputs
+bin/
+obj/
+dist/
+nupkg/
+*.nupkg
+*.tgz
+
+## Ignore generated files
+src/dotnet/RestClient.g.cs
+src/net48/RestClient.Net48.g.cs
+src/typescript/api-client.g.ts
+
+## Node modules
+node_modules/
+package-lock.json
+
+## IDE
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Logs
+logs/
+*.log
