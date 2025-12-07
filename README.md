@@ -1,7 +1,7 @@
 # Job Scheduler Worker
 
-[![Build Status](https://github.com/cangelosilima/Jobs.Worker/actions/workflows/ci.yml/badge.svg)](https://github.com/cangelosilima/Jobs.Worker/actions)
-[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![Build Status](https://github.com/cangelosilima/Jobs.Worker/actions/workflows/ci-main.yml/badge.svg)](https://github.com/cangelosilima/Jobs.Worker/actions)
+[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)](https://dotnet.microsoft.com/)
 [![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![Code Quality](https://img.shields.io/badge/Code%20Quality-Clean%20Architecture-brightgreen.svg)](https://github.com/cangelosilima/Jobs.Worker)
 [![Tests](https://img.shields.io/badge/Tests-Passing-success.svg)](https://github.com/cangelosilima/Jobs.Worker/actions)

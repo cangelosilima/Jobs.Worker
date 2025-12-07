@@ -5,6 +5,7 @@
         "vscode": {
             "extensions": [
                 "ms-vscode.vscode-node-azure-pack",
+                "ms-vscode-remote.remote-containers",
                 "ms-dotnettools.vscode-dotnet-runtime",
                 "ms-dotnettools.csdevkit",
                 "ms-dotnettools.csharp",
@@ -27,7 +28,7 @@
             ]
         }
     },
-    "postCreateCommand": "dotnet --version",
+    "postCreateCommand": "dotnet restore backend && npm install --prefix frontend",
     "features": {
         "ghcr.io/devcontainers/features/docker-in-docker:2": {},
         "ghcr.io/devcontainers/features/github-cli:1": {
