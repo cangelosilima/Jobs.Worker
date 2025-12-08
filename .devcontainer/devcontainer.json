@@ -30,6 +30,7 @@
     },
     "postCreateCommand": "dotnet restore backend && npm install --prefix frontend",
     "features": {
+        "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
         "ghcr.io/devcontainers/features/docker-in-docker:2": {},
         "ghcr.io/devcontainers/features/github-cli:1": {
             "version": "2"

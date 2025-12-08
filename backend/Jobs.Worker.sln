@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -20,6 +20,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.Worker.Api.Tests", "tests\Jobs.Worker.Api.Tests\Jobs.Worker.Api.Tests.csproj", "{B8C9D0E1-F2A3-4B5C-5D6E-7F8A9B0C1D2E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.Worker.ArchitectureTests", "tests\Jobs.Worker.ArchitectureTests\Jobs.Worker.ArchitectureTests.csproj", "{C9D0E1F2-A3B4-4C5D-6E7F-8A9B0C1D2E3F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jobs.Worker.Client.Net", "src\Jobs.Worker.Client.Net\Jobs.Worker.Client.Net.csproj", "{69B698A2-D1AB-412B-BDD7-59D1E776A35C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -63,5 +65,12 @@ Global
 		{C9D0E1F2-A3B4-4C5D-6E7F-8A9B0C1D2E3F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C9D0E1F2-A3B4-4C5D-6E7F-8A9B0C1D2E3F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C9D0E1F2-A3B4-4C5D-6E7F-8A9B0C1D2E3F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69B698A2-D1AB-412B-BDD7-59D1E776A35C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69B698A2-D1AB-412B-BDD7-59D1E776A35C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69B698A2-D1AB-412B-BDD7-59D1E776A35C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69B698A2-D1AB-412B-BDD7-59D1E776A35C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal
