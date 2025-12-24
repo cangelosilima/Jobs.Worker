@@ -70,6 +70,7 @@ public class JobsApiTests : IClassFixture<WebApplicationFactory<Program>>, IAsyn
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
+    [Fact]
     public async Task CreateJob_WithValidData_ShouldReturnCreated()
     {
         // Arrange
