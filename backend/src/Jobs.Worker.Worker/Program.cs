@@ -2,6 +2,7 @@ using Jobs.Worker.Application.Interfaces;
 using Jobs.Worker.Infrastructure.Persistence;
 using Jobs.Worker.Infrastructure.Repositories;
 using Jobs.Worker.Infrastructure.Services;
+using Jobs.Worker.Infrastructure.Signals;
 using Jobs.Worker.Worker;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -34,6 +35,7 @@ builder.Services.AddScoped<IAuditRepository, AuditRepository>();
 // Add services
 builder.Services.AddScoped<IScheduleCalculator, ScheduleCalculator>();
 builder.Services.AddSingleton<IDistributedLockService, DistributedLockService>();
+builder.Services.AddSingleton<ISchedulerSignal, SchedulerSignal>();
 
 // Add hosted service
 builder.Services.AddHostedService<SchedulerWorker>();

@@ -15,14 +15,17 @@ public class SchedulerWorker : BackgroundService
 {
     private readonly ILogger<SchedulerWorker> _logger;
     private readonly IServiceProvider _serviceProvider;
+    private readonly ISchedulerSignal _schedulerSignal;
     private readonly string _hostInstance;
 
     public SchedulerWorker(
         ILogger<SchedulerWorker> logger,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        ISchedulerSignal schedulerSignal)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
+        _schedulerSignal = schedulerSignal;
         _hostInstance = Environment.MachineName;
     }
 
@@ -38,8 +41,8 @@ public class SchedulerWorker : BackgroundService
                 await ProcessQueuedExecutionsAsync(stoppingToken);
                 await ProcessRetryExecutionsAsync(stoppingToken);
 
-                // Check every 10 seconds
-                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+                var waitTime = await CalculateWaitTimeAsync(stoppingToken);
+                await _schedulerSignal.WaitForSignalAsync(waitTime, stoppingToken);
             }
             catch (Exception ex)
             {
@@ -163,6 +166,68 @@ public class SchedulerWorker : BackgroundService
 
             _ = Task.Run(() => ExecuteJobAsync(execution.Id, cancellationToken), cancellationToken);
         }
+    }
+
+    private async Task<TimeSpan> CalculateWaitTimeAsync(CancellationToken cancellationToken)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var scheduleRepo = scope.ServiceProvider.GetRequiredService<IJobScheduleRepository>();
+        var executionRepo = scope.ServiceProvider.GetRequiredService<IJobExecutionRepository>();
+
+        var now = DateTime.UtcNow;
+        var nextSchedule = await scheduleRepo.GetNextScheduledExecutionTimeAsync(now, cancellationToken);
+        var nextRetry = await GetNextRetryTimeAsync(executionRepo, now, cancellationToken);
+
+        var nextWake = GetEarliestTime(nextSchedule, nextRetry);
+        if (!nextWake.HasValue)
+        {
+            return TimeSpan.FromSeconds(30);
+        }
+
+        var delay = nextWake.Value - now;
+        if (delay <= TimeSpan.Zero)
+        {
+            return TimeSpan.FromMilliseconds(250);
+        }
+
+        if (delay > TimeSpan.FromSeconds(30))
+        {
+            return TimeSpan.FromSeconds(30);
+        }
+
+        return delay;
+    }
+
+    private static DateTime? GetEarliestTime(DateTime? first, DateTime? second)
+    {
+        if (first.HasValue && second.HasValue)
+        {
+            return first.Value <= second.Value ? first : second;
+        }
+
+        return first ?? second;
+    }
+
+    private static async Task<DateTime?> GetNextRetryTimeAsync(
+        IJobExecutionRepository executionRepo,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var retryingExecutions = await executionRepo.GetExecutionsByStatusAsync(
+            Domain.Enums.ExecutionStatus.Retrying, cancellationToken);
+
+        var retryTimes = retryingExecutions
+            .Where(e => e.NextRetryAtUtc.HasValue)
+            .Select(e => e.NextRetryAtUtc!.Value)
+            .ToList();
+
+        if (retryTimes.Count == 0)
+        {
+            return null;
+        }
+
+        var earliest = retryTimes.Min();
+        return earliest <= now ? now : earliest;
     }
 
     private async Task ExecuteJobAsync(Guid executionId, CancellationToken cancellationToken)

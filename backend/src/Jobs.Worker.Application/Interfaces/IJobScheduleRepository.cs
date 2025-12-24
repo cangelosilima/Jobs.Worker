@@ -13,6 +13,7 @@ public interface IJobScheduleRepository
     Task<IEnumerable<JobSchedule>> GetSchedulesForJobAsync(Guid jobId, CancellationToken cancellationToken = default);
     Task<IEnumerable<JobSchedule>> GetDueSchedulesAsync(DateTime currentTime, CancellationToken cancellationToken = default);
     Task<IEnumerable<JobSchedule>> GetUpcomingSchedulesAsync(DateTime startTime, DateTime endTime, CancellationToken cancellationToken = default);
+    Task<DateTime?> GetNextScheduledExecutionTimeAsync(DateTime currentTime, CancellationToken cancellationToken = default);
     Task AddAsync(JobSchedule schedule, CancellationToken cancellationToken = default);
     Task UpdateAsync(JobSchedule schedule, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
