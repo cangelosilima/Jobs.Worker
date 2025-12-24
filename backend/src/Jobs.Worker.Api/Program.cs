@@ -12,6 +12,7 @@ using Jobs.Worker.Domain.Enums;
 using Jobs.Worker.Infrastructure.Persistence;
 using Jobs.Worker.Infrastructure.Repositories;
 using Jobs.Worker.Infrastructure.Services;
+using Jobs.Worker.Infrastructure.Signals;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -67,6 +68,7 @@ builder.Services.AddScoped<IJobCircuitBreakerRepository, JobCircuitBreakerReposi
 // Add services
 builder.Services.AddScoped<IScheduleCalculator, ScheduleCalculator>();
 builder.Services.AddSingleton<IDistributedLockService, DistributedLockService>();
+builder.Services.AddSingleton<ISchedulerSignal, SchedulerSignal>();
 
 // Add background services
 builder.Services.AddHostedService<SignalRNotificationService>();
@@ -341,7 +343,8 @@ void MapScheduleEndpoints(WebApplication app)
     group.MapPost("/jobs/{jobId:guid}/schedules", async (
         Guid jobId,
         CreateScheduleCommand command,
-        IJobScheduleRepository scheduleRepo) =>
+        IJobScheduleRepository scheduleRepo,
+        ISchedulerSignal schedulerSignal) =>
     {
         var rule = command.ScheduleType switch
         {
@@ -364,6 +367,7 @@ void MapScheduleEndpoints(WebApplication app)
         );
 
         await scheduleRepo.AddAsync(schedule);
+        schedulerSignal.NotifySchedulesChanged();
         return Results.Created($"/api/jobs/{jobId}/schedules/{schedule.Id}", new { id = schedule.Id });
     }).WithName("CreateSchedule");
 }

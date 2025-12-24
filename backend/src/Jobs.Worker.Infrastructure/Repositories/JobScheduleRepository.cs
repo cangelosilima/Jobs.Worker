@@ -63,6 +63,17 @@ public class JobScheduleRepository : IJobScheduleRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<DateTime?> GetNextScheduledExecutionTimeAsync(DateTime currentTime, CancellationToken cancellationToken = default)
+    {
+        return await _context.JobSchedules
+            .Where(s => s.IsActive &&
+                        s.NextExecutionUtc.HasValue &&
+                        s.NextExecutionUtc.Value >= currentTime)
+            .OrderBy(s => s.NextExecutionUtc)
+            .Select(s => s.NextExecutionUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task AddAsync(JobSchedule schedule, CancellationToken cancellationToken = default)
     {
         await _context.JobSchedules.AddAsync(schedule, cancellationToken);
